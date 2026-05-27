@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,4 +5,258 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ─── Auth & Users ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedCampaigns Campaign[]      @relation("CampaignDM")
+  memberships    CampaignMember[]
+  ownedNodes     Node[]          @relation("NodeOwner")
+  authoredBlocks NodeBlock[]     @relation("BlockAuthor")
+  createdLinks   NodeLink[]      @relation("LinkCreator")
+}
+
+// ─── Campaigns ────────────────────────────────────────────────
+
+model Campaign {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  dmId        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dm       User             @relation("CampaignDM", fields: [dmId], references: [id])
+  members  CampaignMember[]
+  nodes    Node[]
+  sessions SessionDetail[]
+}
+
+model CampaignMember {
+  id         String   @id @default(uuid())
+  campaignId String
+  userId     String
+  role       CampaignRole @default(PLAYER)
+  joinedAt   DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+}
+
+enum CampaignRole {
+  PLAYER
+  LOREMASTER
+}
+
+// ─── Universal Node ───────────────────────────────────────────
+
+model Node {
+  id          String     @id @default(uuid())
+  type        NodeType
+  title       String
+  excerpt     String?
+  ownerId     String
+  campaignId  String?
+  visibility  Visibility @default(PRIVATE)
+  parentId    String?
+  metadata    Json?      @default("{}")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  owner       User        @relation("NodeOwner", fields: [ownerId], references: [id])
+  campaign    Campaign?   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  parent      Node?       @relation("NodeHierarchy", fields: [parentId], references: [id])
+  children    Node[]      @relation("NodeHierarchy")
+
+  blocks      NodeBlock[]
+  tags        NodeTag[]
+  outgoingLinks NodeLink[] @relation("LinkSource")
+  incomingLinks NodeLink[] @relation("LinkTarget")
+
+  arcDetail       ArcDetail?
+  sessionDetail   SessionDetail?
+  characterDetail CharacterDetail?
+  creatureDetail  CreatureDetail?
+  itemDetail      ItemDetail?
+  locationDetail  LocationDetail?
+
+  @@index([campaignId])
+  @@index([type])
+  @@index([parentId])
+}
+
+enum NodeType {
+  ARC
+  SESSION
+  CHARACTER
+  CREATURE
+  ITEM
+  LOCATION
+  NOTE
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+  DM_ONLY
+}
+
+// ─── Node Blocks (Notion Layer) ───────────────────────────────
+
+model NodeBlock {
+  id         String     @id @default(uuid())
+  nodeId     String
+  authorId   String
+  type       BlockType
+  content    Json
+  ordering   Int        @default(0)
+  visibility Visibility @default(PUBLIC)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  node   Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  author User @relation("BlockAuthor", fields: [authorId], references: [id])
+
+  @@index([nodeId])
+}
+
+enum BlockType {
+  TEXT
+  RICH_TEXT
+  IMAGE
+}
+
+// ─── Node Links (Many-to-Many) ────────────────────────────────
+
+model NodeLink {
+  id        String   @id @default(uuid())
+  sourceId  String
+  targetId  String
+  label     String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  source Node @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Node @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  creator User @relation("LinkCreator", fields: [createdBy], references: [id])
+
+  @@unique([sourceId, targetId])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+// ─── Node Tags ────────────────────────────────────────────────
+
+model NodeTag {
+  id     String @id @default(uuid())
+  nodeId String
+  tag    String
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, tag])
+  @@index([nodeId])
+}
+
+// ─── Type-Specific Detail Tables ──────────────────────────────
+
+model ArcDetail {
+  id          String  @id @default(uuid())
+  nodeId      String  @unique
+  arcNumber   Int
+  description String?
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model SessionDetail {
+  id             String    @id @default(uuid())
+  nodeId         String    @unique
+  sessionNumber  Int
+  sessionDate    DateTime?
+  shortSummary   String?
+  longSummary    String?
+  consolidatedAt DateTime?
+  campaignId     String?
+
+  node     Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+}
+
+model CharacterDetail {
+  id                  String  @id @default(uuid())
+  nodeId              String  @unique
+  physicalDescription String?
+  gender              String?
+  alignment           String?
+  personality         String?
+  race                String?
+  class               String?
+  level               Int?
+  isPC                Boolean @default(false)
+  age                 String?
+  voice               String?
+  mannerisms          String?
+  goals               String?
+  secrets             String?
+  abilities           String? // Freeform text for MVP
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model CreatureDetail {
+  id              String @id @default(uuid())
+  nodeId          String @unique
+  species         String?
+  size            String?
+  challengeRating String?
+  habitat         String?
+  stats           Json?  @default("{}")
+  abilities       String?
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model ItemDetail {
+  id                 String  @id @default(uuid())
+  nodeId             String  @unique
+  weight             String?
+  value              String?
+  rarity             String?
+  itemType           String?
+  requiresAttunement Boolean @default(false)
+  abilities          String?
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+model LocationDetail {
+  id           String       @id @default(uuid())
+  nodeId       String       @unique
+  region       String?
+  climate      String?
+  population   String?
+  locationType LocationType @default(POINT_OF_INTEREST)
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+enum LocationType {
+  REGION
+  CITY
+  TOWN
+  DUNGEON
+  BUILDING
+  WILDERNESS
+  POINT_OF_INTEREST
 }
