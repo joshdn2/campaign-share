@@ -6,15 +6,20 @@ import {
   BlockType,
   LocationType,
 } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
+const SALT_ROUNDS = 10;
 
 async function main() {
   // ─── Create Users ─────────────────────────────────────────
+  const dmPassword = await bcrypt.hash("password123", SALT_ROUNDS);
+  const playerPassword = await bcrypt.hash("password123", SALT_ROUNDS);
+
   const dm = await prisma.user.create({
     data: {
       email: "dm@example.com",
-      passwordHash: "$2b$10$hashedplaceholder", // Replace with real hash in production
+      passwordHash: dmPassword,
       displayName: "The DM",
     },
   });
@@ -22,7 +27,7 @@ async function main() {
   const player = await prisma.user.create({
     data: {
       email: "player@example.com",
-      passwordHash: "$2b$10$hashedplaceholder",
+      passwordHash: playerPassword,
       displayName: "AragornFan",
     },
   });
