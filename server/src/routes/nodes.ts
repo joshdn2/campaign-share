@@ -34,6 +34,8 @@ function detailInclude(type: string) {
       return { itemDetail: true };
     case "LOCATION":
       return { locationDetail: true };
+    case "FACTION":
+      return { factionDetail: true };
     default:
       return {};
   }
@@ -113,6 +115,24 @@ async function createDetail(tx: any, nodeId: string, type: string, details: Reco
           climate: (details.climate as string) || null,
           population: (details.population as string) || null,
           locationType: (details.locationType as any) || "POINT_OF_INTEREST",
+        },
+      });
+    case "FACTION":
+      return tx.factionDetail.create({
+        data: {
+          nodeId,
+          factionType: (details.factionType as string) || null,
+          description: (details.description as string) || null,
+          alignment: (details.alignment as string) || null,
+          size: (details.size as string) || null,
+          reach: (details.reach as string) || null,
+          goals: (details.goals as string) || null,
+          secrets: (details.secrets as string) || null,
+          resources: (details.resources as string) || null,
+          publicImage: (details.publicImage as string) || null,
+          leaderName: (details.leaderName as string) || null,
+          headquarters: (details.headquarters as string) || null,
+          influenceLevel: (details.influenceLevel as string) || null,
         },
       });
     default:
@@ -250,6 +270,39 @@ async function updateDetail(tx: any, nodeId: string, type: string, details: Reco
           locationType: details.locationType as any | undefined,
         },
       });
+    case "FACTION":
+      return tx.factionDetail.upsert({
+        where: { nodeId },
+        create: {
+          nodeId,
+          factionType: (details.factionType as string) || null,
+          description: (details.description as string) || null,
+          alignment: (details.alignment as string) || null,
+          size: (details.size as string) || null,
+          reach: (details.reach as string) || null,
+          goals: (details.goals as string) || null,
+          secrets: (details.secrets as string) || null,
+          resources: (details.resources as string) || null,
+          publicImage: (details.publicImage as string) || null,
+          leaderName: (details.leaderName as string) || null,
+          headquarters: (details.headquarters as string) || null,
+          influenceLevel: (details.influenceLevel as string) || null,
+        },
+        update: {
+          factionType: details.factionType as string | undefined,
+          description: details.description as string | undefined,
+          alignment: details.alignment as string | undefined,
+          size: details.size as string | undefined,
+          reach: details.reach as string | undefined,
+          goals: details.goals as string | undefined,
+          secrets: details.secrets as string | undefined,
+          resources: details.resources as string | undefined,
+          publicImage: details.publicImage as string | undefined,
+          leaderName: details.leaderName as string | undefined,
+          headquarters: details.headquarters as string | undefined,
+          influenceLevel: details.influenceLevel as string | undefined,
+        },
+      });
     default:
       return null;
   }
@@ -384,6 +437,7 @@ router.get("/:id", async (req, res) => {
       creatureDetail: true,
       itemDetail: true,
       locationDetail: true,
+      factionDetail: true,
       outgoingLinks: {
         include: {
           target: { select: { id: true, title: true, type: true } },
@@ -498,6 +552,7 @@ router.patch("/:id", async (req, res) => {
         creatureDetail: true,
         itemDetail: true,
         locationDetail: true,
+        factionDetail: true,
         outgoingLinks: {
           include: {
             target: { select: { id: true, title: true, type: true } },

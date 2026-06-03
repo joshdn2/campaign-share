@@ -44,6 +44,7 @@ export const nodeTypeSchema = z.enum([
   "ITEM",
   "LOCATION",
   "NOTE",
+  "FACTION",
 ]);
 
 export const visibilitySchema = z.enum(["PRIVATE", "PUBLIC", "DM_ONLY"]);

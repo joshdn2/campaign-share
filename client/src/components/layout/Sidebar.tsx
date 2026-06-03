@@ -12,6 +12,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   ITEM: "Items",
   LOCATION: "Locations",
   NOTE: "Notes",
+  FACTION: "Factions",
 };
 
 const NODE_TYPE_ORDER: NodeType[] = [
@@ -21,6 +22,7 @@ const NODE_TYPE_ORDER: NodeType[] = [
   "CREATURE",
   "ITEM",
   "LOCATION",
+  "FACTION",
   "NOTE",
 ];
 
