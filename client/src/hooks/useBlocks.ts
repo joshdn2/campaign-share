@@ -34,14 +34,20 @@ export function useCreateBlock(nodeId: string) {
   });
 }
 
-export function useUpdateBlock(blockId: string, nodeId: string) {
+export function useUpdateBlock(nodeId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: {
-      type?: string;
-      content?: Record<string, unknown>;
-      visibility?: string;
-      ordering?: number;
+    mutationFn: async ({
+      blockId,
+      data,
+    }: {
+      blockId: string;
+      data: {
+        type?: string;
+        content?: Record<string, unknown>;
+        visibility?: string;
+        ordering?: number;
+      };
     }) => {
       const res = await api.patch<NodeBlock>(`/blocks/${blockId}`, data);
       return res.data;
@@ -53,10 +59,10 @@ export function useUpdateBlock(blockId: string, nodeId: string) {
   });
 }
 
-export function useDeleteBlock(blockId: string, nodeId: string) {
+export function useDeleteBlock(nodeId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (blockId: string) => {
       await api.delete(`/blocks/${blockId}`);
     },
     onSuccess: () => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/axios";
+import { isAxiosError } from "axios";
 import { useAuthStore } from "../stores/authStore";
 
 export function RegisterPage() {
@@ -23,8 +24,16 @@ export function RegisterPage() {
       const me = await api.get("/auth/me");
       setUser(me.data.user);
       navigate("/campaigns");
-    } catch (err: any) {
-      setError(err.response?.data?.error?.formErrors?.[0] || err.response?.data?.error || "Registration failed");
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(
+          err.response?.data?.error?.formErrors?.[0] ||
+            err.response?.data?.error ||
+            "Registration failed",
+        );
+      } else {
+        setError("Registration failed");
+      }
     } finally {
       setLoading(false);
     }

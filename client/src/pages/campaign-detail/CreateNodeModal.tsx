@@ -1,16 +1,18 @@
 import { useState } from "react";
-import type { NodeType } from "../../types";
-
 // Modal for creating a new node (any type).
 interface Props {
-  type: NodeType;
   label: string;
   onCreate: (data: { title: string; excerpt: string }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
-export function CreateNodeModal({ type, label, onCreate, onClose, isPending }: Props) {
+export function CreateNodeModal({
+  label,
+  onCreate,
+  onClose,
+  isPending,
+}: Props) {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
 
@@ -25,7 +27,9 @@ export function CreateNodeModal({ type, label, onCreate, onClose, isPending }: P
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-bold text-gray-800 dark:text-white">New {label}</h2>
+        <h2 className="mb-4 text-lg font-bold text-gray-800 dark:text-white">
+          New {label}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">

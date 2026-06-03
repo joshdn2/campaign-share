@@ -1,4 +1,8 @@
-import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { useMyCampaigns } from "../../hooks/useCampaigns";
 import { useCampaign } from "../../hooks/useCampaigns";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
@@ -28,14 +32,18 @@ const NODE_TYPE_ORDER: NodeType[] = [
 
 export function Sidebar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { campaignId } = useParams();
 
   if (!campaignId) {
     return <CampaignsSidebar navigate={navigate} />;
   }
 
-  return <CampaignNavSidebar campaignId={campaignId} navigate={navigate} location={location} />;
+  return (
+    <CampaignNavSidebar
+      campaignId={campaignId}
+      navigate={navigate}
+    />
+  );
 }
 
 function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
@@ -80,11 +88,9 @@ function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
 function CampaignNavSidebar({
   campaignId,
   navigate,
-  location,
 }: {
   campaignId: string;
   navigate: (path: string) => void;
-  location: { pathname: string };
 }) {
   const [searchParams] = useSearchParams();
   const activeType = searchParams.get("type") || "";
@@ -100,10 +106,13 @@ function CampaignNavSidebar({
 
   if (!campaign) return null;
 
-  const nodesByType = campaign.nodes?.reduce((acc, node) => {
-    acc[node.type] = (acc[node.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const nodesByType = campaign.nodes?.reduce(
+    (acc, node) => {
+      acc[node.type] = (acc[node.type] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return (
     <aside className="w-64 border-r border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
@@ -135,15 +144,19 @@ function CampaignNavSidebar({
               }`}
             >
               <button
-                onClick={() => navigate(`/campaigns/${campaignId}?type=${type}`)}
+                onClick={() =>
+                  navigate(`/campaigns/${campaignId}?type=${type}`)
+                }
                 className="flex flex-1 items-center justify-between text-left"
               >
                 <span>{NODE_TYPE_LABELS[type]}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  isActive
-                    ? "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200"
-                    : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                }`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isActive
+                      ? "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200"
+                      : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                  }`}
+                >
                   {count}
                 </span>
               </button>
@@ -169,10 +182,14 @@ function CampaignNavSidebar({
         {campaign.nodes?.slice(0, 8).map((node) => (
           <button
             key={node.id}
-            onClick={() => navigate(`/campaigns/${campaignId}/nodes/${node.id}`)}
+            onClick={() =>
+              navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
+            }
             className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
           >
-            <span className="mr-1 text-xs text-gray-400">{node.type.slice(0, 3)}</span>
+            <span className="mr-1 text-xs text-gray-400">
+              {node.type.slice(0, 3)}
+            </span>
             {node.title}
           </button>
         ))}

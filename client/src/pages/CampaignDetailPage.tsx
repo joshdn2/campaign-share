@@ -33,7 +33,14 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
 };
 
 // Node types shown as grids on the main campaign view.
-const GRID_TYPES: NodeType[] = ["CHARACTER", "LOCATION", "ITEM", "CREATURE", "FACTION", "NOTE"];
+const GRID_TYPES: NodeType[] = [
+  "CHARACTER",
+  "LOCATION",
+  "ITEM",
+  "CREATURE",
+  "FACTION",
+  "NOTE",
+];
 
 /**
  * CampaignDetailPage – main view for a single campaign.
@@ -48,8 +55,14 @@ export function CampaignDetailPage() {
   const { user } = useAuthStore();
 
   // Data hooks
-  const { data: campaign, isLoading: campaignLoading, error: campaignError } = useCampaign(campaignId!);
-  const { data: nodes, isLoading: nodesLoading } = useCampaignNodes(campaignId!);
+  const {
+    data: campaign,
+    isLoading: campaignLoading,
+    error: campaignError,
+  } = useCampaign(campaignId!);
+  const { data: nodes, isLoading: nodesLoading } = useCampaignNodes(
+    campaignId!,
+  );
 
   // Mutations
   const updateCampaign = useUpdateCampaign(campaignId!);
@@ -60,20 +73,29 @@ export function CampaignDetailPage() {
 
   // Modal state
   const [showAddMember, setShowAddMember] = useState(false);
-  const [showCreateNode, setShowCreateNode] = useState(false);
-  const [createNodeType, setCreateNodeType] = useState<NodeType | null>(null);
+  const [showCreateNode, setShowCreateNode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("create") === "1" && params.get("type") !== null;
+  });
+  const [createNodeType, setCreateNodeType] = useState<NodeType | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type") as NodeType | null;
+    return params.get("create") === "1" && type ? type : null;
+  });
   const [pendingParentId, setPendingParentId] = useState<string | null>(null);
 
-  // Auto-open create modal if ?create=1 is present in URL
+  // Clean ?create=1 from URL after reading it into initial state
   useEffect(() => {
-    if (searchParams.get("create") === "1" && filterType) {
-      setCreateNodeType(filterType);
-      setShowCreateNode(true);
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("create");
-      setSearchParams(newParams, { replace: true });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") === "1") {
+      params.delete("create");
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?${params.toString()}`,
+      );
     }
-  }, [searchParams, filterType, setSearchParams]);
+  }, []);
 
   const isDm = campaign?.dmId === user?.id;
 
@@ -86,7 +108,9 @@ export function CampaignDetailPage() {
   }
 
   if (campaignError || !campaign) {
-    return <ErrorMessage message={campaignError?.message || "Campaign not found"} />;
+    return (
+      <ErrorMessage message={campaignError?.message || "Campaign not found"} />
+    );
   }
 
   // Group nodes by type for the grid sections
@@ -99,7 +123,9 @@ export function CampaignDetailPage() {
     {} as Record<NodeType, typeof nodes>,
   );
 
-  const filteredNodes = filterType ? nodes?.filter((n) => n.type === filterType) : null;
+  const filteredNodes = filterType
+    ? nodes?.filter((n) => n.type === filterType)
+    : null;
   const arcs = nodesByType?.ARC || [];
   const sessions = nodesByType?.SESSION || [];
 
@@ -135,7 +161,6 @@ export function CampaignDetailPage() {
       {filterType && filteredNodes && (
         <FilteredNodeList
           campaignId={campaignId!}
-          type={filterType}
           label={NODE_TYPE_LABELS[filterType]}
           nodes={filteredNodes}
           onCreate={() => openCreateModal(filterType)}
@@ -149,7 +174,9 @@ export function CampaignDetailPage() {
           <CampaignInfoSection
             campaign={campaign}
             isDm={isDm}
-            onUpdate={(data) => updateCampaign.mutateAsync(data)}
+            onUpdate={async (data) => {
+              await updateCampaign.mutateAsync(data);
+            }}
             isUpdating={updateCampaign.isPending}
           />
 
@@ -177,7 +204,6 @@ export function CampaignDetailPage() {
             <NodeTypeGrid
               key={type}
               campaignId={campaignId!}
-              type={type}
               label={NODE_TYPE_LABELS[type]}
               nodes={nodesByType?.[type] || []}
             />
@@ -188,7 +214,9 @@ export function CampaignDetailPage() {
       {/* Modals */}
       {showAddMember && (
         <AddMemberModal
-          onAdd={(data) => addMember.mutateAsync(data)}
+          onAdd={async (data) => {
+            await addMember.mutateAsync(data);
+          }}
           onClose={() => setShowAddMember(false)}
           isPending={addMember.isPending}
         />
@@ -196,7 +224,6 @@ export function CampaignDetailPage() {
 
       {showCreateNode && createNodeType && (
         <CreateNodeModal
-          type={createNodeType}
           label={NODE_TYPE_LABELS[createNodeType]}
           onCreate={handleCreateNode}
           onClose={() => {

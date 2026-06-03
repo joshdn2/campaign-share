@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/axios";
+import { isAxiosError } from "axios";
 import { useAuthStore } from "../stores/authStore";
 
 export function LoginPage() {
@@ -21,8 +22,16 @@ export function LoginPage() {
       const me = await api.get("/auth/me");
       setUser(me.data.user);
       navigate("/campaigns");
-    } catch (err: any) {
-      setError(err.response?.data?.error?.formErrors?.[0] || err.response?.data?.error || "Login failed");
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(
+          err.response?.data?.error?.formErrors?.[0] ||
+            err.response?.data?.error ||
+            "Login failed",
+        );
+      } else {
+        setError("Login failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +88,10 @@ export function LoginPage() {
 
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Don't have an account?{" "}
-          <Link to="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link
+            to="/register"
+            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+          >
             Create one
           </Link>
         </p>

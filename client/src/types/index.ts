@@ -15,9 +15,24 @@ export interface AuthState {
 
 export type CampaignRole = "PLAYER" | "LOREMASTER";
 export type Visibility = "PRIVATE" | "PUBLIC" | "DM_ONLY";
-export type NodeType = "ARC" | "SESSION" | "CHARACTER" | "CREATURE" | "ITEM" | "LOCATION" | "NOTE" | "FACTION";
+export type NodeType =
+  | "ARC"
+  | "SESSION"
+  | "CHARACTER"
+  | "CREATURE"
+  | "ITEM"
+  | "LOCATION"
+  | "NOTE"
+  | "FACTION";
 export type BlockType = "TEXT" | "RICH_TEXT" | "IMAGE";
-export type LocationType = "REGION" | "CITY" | "TOWN" | "DUNGEON" | "BUILDING" | "WILDERNESS" | "POINT_OF_INTEREST";
+export type LocationType =
+  | "REGION"
+  | "CITY"
+  | "TOWN"
+  | "DUNGEON"
+  | "BUILDING"
+  | "WILDERNESS"
+  | "POINT_OF_INTEREST";
 
 export interface CampaignMember {
   id: string;
@@ -171,6 +186,7 @@ export interface Node {
   creatureDetail?: CreatureDetail | null;
   itemDetail?: ItemDetail | null;
   locationDetail?: LocationDetail | null;
+  factionDetail?: FactionDetail | null;
   outgoingLinks?: NodeLink[];
   incomingLinks?: NodeLink[];
   blocks?: NodeBlock[];
