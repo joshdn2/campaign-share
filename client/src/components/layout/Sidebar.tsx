@@ -1,8 +1,4 @@
-import {
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMyCampaigns } from "../../hooks/useCampaigns";
 import { useCampaign } from "../../hooks/useCampaigns";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
@@ -38,12 +34,7 @@ export function Sidebar() {
     return <CampaignsSidebar navigate={navigate} />;
   }
 
-  return (
-    <CampaignNavSidebar
-      campaignId={campaignId}
-      navigate={navigate}
-    />
-  );
+  return <CampaignNavSidebar campaignId={campaignId} navigate={navigate} />;
 }
 
 function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
@@ -116,12 +107,12 @@ function CampaignNavSidebar({
 
   return (
     <aside className="w-64 border-r border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-      <button
+      {/* <button
         onClick={() => navigate("/campaigns")}
         className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
       >
         ← All Campaigns
-      </button>
+      </button> */}
 
       <button
         onClick={() => navigate(`/campaigns/${campaignId}`)}
