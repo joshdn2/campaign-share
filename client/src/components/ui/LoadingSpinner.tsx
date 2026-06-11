@@ -1,3 +1,14 @@
+/**
+ * LoadingSpinner.tsx
+ *
+ * Centered animated spinner used while asynchronous data is loading.
+ */
+
+/**
+ * Renders a rotating CSS spinner.
+ *
+ * @param className - Optional extra Tailwind classes (e.g. for padding/margins).
+ */
 export function LoadingSpinner({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center justify-center ${className}`}>

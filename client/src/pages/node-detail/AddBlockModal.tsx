@@ -1,18 +1,39 @@
 import { useState } from "react";
 import type { BlockType, Visibility } from "../../types";
 
-// Modal for adding a new text/rich-text block to a node.
+/**
+ * ============================================================================
+ * node-detail/AddBlockModal.tsx
+ * ============================================================================
+ *
+ * Modal dialog for adding a new content block to a node.
+ *
+ * Blocks have:
+ *  - type: TEXT or RICH_TEXT
+ *  - content: a JSON object; this UI stores the user's input as `content.text`
+ *  - visibility: PRIVATE, PUBLIC, or DM_ONLY
+ */
+
 interface Props {
   onAdd: (data: { type: BlockType; content: Record<string, unknown>; visibility: Visibility }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
+/**
+ * AddBlockModal – form for adding a new text/rich-text block to a node.
+ *
+ * State:
+ *  - type: block type selector (TEXT / RICH_TEXT)
+ *  - content: plain-text content stored in `{ text: content }`
+ *  - visibility: who can see the block once saved
+ */
 export function AddBlockModal({ onAdd, onClose, isPending }: Props) {
   const [type, setType] = useState<BlockType>("TEXT");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("PUBLIC");
 
+  /** Submits the block, then resets the form to defaults and closes. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onAdd({ type, content: { text: content }, visibility });

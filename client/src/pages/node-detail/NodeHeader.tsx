@@ -1,7 +1,15 @@
 import { useState } from "react";
 import type { Node } from "../../types";
 
-// Node title bar with type/visibility badges. Editable by owner or DM.
+/**
+ * ============================================================================
+ * node-detail/NodeHeader.tsx
+ * ============================================================================
+ *
+ * Renders the node title, type badge, visibility badge, and delete button.
+ * Users with edit permission can switch the title to inline edit mode.
+ */
+
 interface Props {
   node: Node;
   canEdit: boolean;
@@ -11,10 +19,18 @@ interface Props {
   isUpdating: boolean;
 }
 
+/**
+ * NodeHeader – node title bar with type and visibility badges.
+ *
+ * State:
+ *  - editing: toggles the inline title editor
+ *  - editTitle: controlled input value for the title editor
+ */
 export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, isUpdating }: Props) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(node.title);
 
+  /** Persists the new title and exits edit mode. */
   const save = async () => {
     await onUpdateTitle(editTitle);
     setEditing(false);
@@ -24,6 +40,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
     <div className="flex items-start justify-between">
       <div className="flex-1">
         {editing ? (
+          // Inline title editor
           <div className="flex items-center gap-2">
             <input
               value={editTitle}
@@ -45,6 +62,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
             </button>
           </div>
         ) : (
+          // Read-only title with edit trigger
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{node.title}</h1>
             {canEdit && (
@@ -61,6 +79,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
           </div>
         )}
 
+        {/* Badges row */}
         <div className="mt-2 flex items-center gap-2">
           <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
             {node.type}
@@ -69,6 +88,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
         </div>
       </div>
 
+      {/* Delete action */}
       {canDelete && (
         <button
           onClick={onDelete}
@@ -81,6 +101,9 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
   );
 }
 
+/**
+ * VisibilityBadge – small colored pill that displays the node visibility.
+ */
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const styles =
     visibility === "PUBLIC"

@@ -1,16 +1,32 @@
 import { useState } from "react";
 
-// Modal for creating a new campaign.
+/**
+ * ============================================================================
+ * campaigns-list/CreateCampaignModal.tsx
+ * ============================================================================
+ *
+ * Modal dialog for creating a new campaign. Collects a required name and an
+ * optional description.
+ */
+
 interface Props {
   onCreate: (data: { name: string; description?: string }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
+/**
+ * CreateCampaignModal – form for creating a new campaign.
+ *
+ * State:
+ *  - name: required campaign name
+ *  - description: optional longer description
+ */
 export function CreateCampaignModal({ onCreate, onClose, isPending }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
+  /** Submits the form, creates the campaign, and resets local form state. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onCreate({ name, description });

@@ -1,3 +1,13 @@
+/**
+ * routes/auth.ts
+ *
+ * Authentication routes for the CampaignShare API.
+ *
+ * This router handles user registration, login, logout, and fetching the
+ * currently authenticated user. Passwords are hashed with bcrypt before
+ * storage, and successful login issues an HTTP-only cookie containing a JWT.
+ */
+
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -5,10 +15,23 @@ import { prisma } from "../db";
 import { registerSchema, loginSchema } from "../lib/validation";
 
 const router = Router();
+
+// JWT secret and cookie settings. The secret signs tokens; SALT_ROUNDS controls
+// the bcrypt hashing cost.
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
 const SALT_ROUNDS = 10;
 
-// Register
+/**
+ * POST /api/auth/register
+ *
+ * Creates a new user account.
+ *
+ * Flow:
+ * 1. Validate the request body against registerSchema.
+ * 2. Ensure no other user already uses the requested email.
+ * 3. Hash the password with bcrypt.
+ * 4. Persist the user record and return a safe subset of fields.
+ */
 router.post("/register", async (req, res) => {
   const parse = registerSchema.safeParse(req.body);
   if (!parse.success) {
@@ -18,12 +41,15 @@ router.post("/register", async (req, res) => {
 
   const { email, password, displayName } = parse.data;
 
+  // Reject duplicate registrations early to avoid leaking whether a password
+  // hash exists for an email.
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     res.status(409).json({ error: "Email already in use" });
     return;
   }
 
+  // Hash the plaintext password before storing it in the database.
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
   const user = await prisma.user.create({
@@ -34,7 +60,18 @@ router.post("/register", async (req, res) => {
   res.status(201).json(user);
 });
 
-// Login
+/**
+ * POST /api/auth/login
+ *
+ * Authenticates an existing user and issues a JWT cookie.
+ *
+ * Flow:
+ * 1. Validate the request body.
+ * 2. Look up the user by email.
+ * 3. Compare the provided password with the stored bcrypt hash.
+ * 4. Sign a JWT and set it as an HTTP-only cookie.
+ * 5. Return the user profile.
+ */
 router.post("/login", async (req, res) => {
   const parse = loginSchema.safeParse(req.body);
   if (!parse.success) {
@@ -56,10 +93,14 @@ router.post("/login", async (req, res) => {
     return;
   }
 
+  // Sign a token containing the user's identity. It expires in 7 days.
   const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
     expiresIn: "7d",
   });
 
+  // Set the token in an HTTP-only cookie so the browser sends it automatically
+  // on subsequent requests. `secure` is only enabled in production to keep
+  // local development over HTTP working.
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -76,13 +117,24 @@ router.post("/login", async (req, res) => {
   });
 });
 
-// Logout
+/**
+ * POST /api/auth/logout
+ *
+ * Clears the authentication cookie, effectively logging the user out.
+ */
 router.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.json({ message: "Logged out" });
 });
 
-// Me (get current user from cookie)
+/**
+ * GET /api/auth/me
+ *
+ * Returns the currently authenticated user based on the `token` cookie.
+ *
+ * This is useful on page load: the client can verify whether an existing
+ * session is still valid without re-entering credentials.
+ */
 router.get("/me", async (req, res) => {
   const token = req.cookies.token;
   if (!token) {

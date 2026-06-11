@@ -1,8 +1,27 @@
 import { useNavigate } from "react-router-dom";
 import type { Campaign } from "../../types";
 
-// Card showing campaign summary. Click to open campaign detail.
-export function CampaignCard({ campaign }: { campaign: Campaign }) {
+/**
+ * ============================================================================
+ * campaigns-list/CampaignCard.tsx
+ * ============================================================================
+ *
+ * Renders a single campaign summary as a clickable card. Clicking the card
+ * navigates to the campaign detail page. A "DM" badge is shown when the
+ * current user owns the campaign.
+ */
+
+interface Props {
+  campaign: Campaign;
+}
+
+/**
+ * CampaignCard – clickable summary card for one campaign.
+ *
+ * Displays the campaign name, optional description, DM badge, and counts of
+ * members and nodes. The whole card acts as a navigation button.
+ */
+export function CampaignCard({ campaign }: Props) {
   const navigate = useNavigate();
 
   return (

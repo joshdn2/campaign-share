@@ -1,16 +1,31 @@
 import { useNavigate } from "react-router-dom";
 import type { Node } from "../../types";
 
-// Displays a grid of node cards for a specific type (e.g., Characters, Locations).
+/**
+ * ============================================================================
+ * campaign-detail/NodeTypeGrid.tsx
+ * ============================================================================
+ *
+ * Renders a card grid for one node type on the campaign detail page.
+ * If there are no nodes of this type, the section is hidden.
+ */
+
 interface Props {
   campaignId: string;
   label: string;
   nodes: Node[];
 }
 
+/**
+ * NodeTypeGrid – displays a grid of node cards for a specific type.
+ *
+ * Examples: Characters, Locations, Items, Creatures, Factions, Notes.
+ * Clicking a card navigates to the node's detail page.
+ */
 export function NodeTypeGrid({ campaignId, label, nodes }: Props) {
   const navigate = useNavigate();
 
+  // Hide the entire section if there is nothing to show for this type.
   if (nodes.length === 0) return null;
 
   return (

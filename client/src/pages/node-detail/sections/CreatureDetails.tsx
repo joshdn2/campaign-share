@@ -1,7 +1,24 @@
 import type { Node } from "../../../types";
 
-// Displays creature-specific fields.
-export function CreatureDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/CreatureDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for CREATURE nodes. Displays creature fields such as species,
+ * size, challenge rating, habitat, and abilities.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * CreatureDetails – renders creature-specific fields.
+ *
+ * Only fields that are present on the `creatureDetail` object are rendered.
+ */
+export function CreatureDetails({ node }: Props) {
   if (!node.creatureDetail) return null;
   const d = node.creatureDetail;
 

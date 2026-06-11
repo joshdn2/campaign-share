@@ -1,7 +1,24 @@
 import type { Node } from "../../../types";
 
-// Displays session-specific fields: number, date, summaries.
-export function SessionDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/SessionDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for SESSION nodes. Displays the session number, date, and
+ * short/long summaries.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * SessionDetails – renders session-specific fields.
+ *
+ * The session date is formatted with `toLocaleDateString` for display.
+ */
+export function SessionDetails({ node }: Props) {
   if (!node.sessionDetail) return null;
 
   return (

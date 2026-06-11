@@ -1,7 +1,24 @@
 import type { NodeTag } from "../../types";
 
-// Renders node tags as a row of pills.
-export function TagsSection({ tags }: { tags: NodeTag[] }) {
+/**
+ * ============================================================================
+ * node-detail/TagsSection.tsx
+ * ============================================================================
+ *
+ * Renders the tags attached to a node as a row of pill badges.
+ * The section is hidden when the node has no tags.
+ */
+
+interface Props {
+  tags: NodeTag[];
+}
+
+/**
+ * TagsSection – renders node tags as a row of pills.
+ *
+ * Each tag is prefixed with "#" to visually distinguish it as a tag.
+ */
+export function TagsSection({ tags }: Props) {
   if (tags.length === 0) return null;
 
   return (

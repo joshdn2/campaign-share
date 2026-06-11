@@ -1,16 +1,38 @@
 import { useNavigate } from "react-router-dom";
 import type { Node } from "../../types";
 
-// Renders incoming and outgoing node links.
-export function LinksSection({ node, campaignId }: { node: Node; campaignId: string }) {
+/**
+ * ============================================================================
+ * node-detail/LinksSection.tsx
+ * ============================================================================
+ *
+ * Renders manually-created relationships between nodes.
+ * Outgoing links point to other nodes; incoming links come from other nodes.
+ * The section is hidden when the node has no links in either direction.
+ */
+
+interface Props {
+  node: Node;
+  campaignId: string;
+}
+
+/**
+ * LinksSection – renders incoming and outgoing node links.
+ *
+ * Each link is rendered as a button that navigates to the linked node's
+ * detail page. Links may have an optional label (e.g. "Located in").
+ */
+export function LinksSection({ node, campaignId }: Props) {
   const navigate = useNavigate();
 
+  // Nothing to render if both directions are empty.
   if (!node.outgoingLinks?.length && !node.incomingLinks?.length) return null;
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
       <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-white">Links</h2>
 
+      {/* Outgoing links: this node -> target nodes */}
       {node.outgoingLinks && node.outgoingLinks.length > 0 && (
         <div className="mb-3">
           <h3 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Outgoing</h3>
@@ -29,6 +51,7 @@ export function LinksSection({ node, campaignId }: { node: Node; campaignId: str
         </div>
       )}
 
+      {/* Incoming links: source nodes -> this node */}
       {node.incomingLinks && node.incomingLinks.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Incoming</h3>

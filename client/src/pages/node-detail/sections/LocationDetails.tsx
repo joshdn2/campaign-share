@@ -1,7 +1,24 @@
 import type { Node } from "../../../types";
 
-// Displays location-specific fields.
-export function LocationDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/LocationDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for LOCATION nodes. Displays location fields such as type,
+ * region, climate, and population.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * LocationDetails – renders location-specific fields.
+ *
+ * Only fields that are present on the `locationDetail` object are rendered.
+ */
+export function LocationDetails({ node }: Props) {
   if (!node.locationDetail) return null;
   const d = node.locationDetail;
 

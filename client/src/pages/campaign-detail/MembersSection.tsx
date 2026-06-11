@@ -1,6 +1,15 @@
 import type { Campaign, CampaignMember } from "../../types";
 
-// Displays campaign members. DM sees add/remove/role controls.
+/**
+ * ============================================================================
+ * campaign-detail/MembersSection.tsx
+ * ============================================================================
+ *
+ * Displays the campaign DM and all campaign members. The DM sees controls to
+ * add members, toggle member roles between PLAYER and LOREMASTER, and remove
+ * members.
+ */
+
 interface Props {
   campaign: Campaign;
   isDm: boolean;
@@ -9,9 +18,17 @@ interface Props {
   onRemoveMember: (userId: string) => void;
 }
 
+/**
+ * MembersSection – renders the campaign member list.
+ *
+ * The DM row is always shown first with a special badge. Each member row is
+ * delegated to `MemberRow` so it can handle its own layout while receiving
+ * permission-aware action callbacks.
+ */
 export function MembersSection({ campaign, isDm, onAddMember, onToggleRole, onRemoveMember }: Props) {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+      {/* Section header with the add-member trigger (DM only) */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Members</h2>
         {isDm && (
@@ -53,6 +70,12 @@ export function MembersSection({ campaign, isDm, onAddMember, onToggleRole, onRe
   );
 }
 
+/**
+ * MemberRow – a single campaign member entry.
+ *
+ * Shows display name, email, role badge, and (when the current user is DM)
+ * buttons to toggle role and remove the member.
+ */
 function MemberRow({
   member,
   isDm,

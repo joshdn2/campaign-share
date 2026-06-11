@@ -1,3 +1,16 @@
+/**
+ * routes/nodes.ts
+ *
+ * Router for campaign nodes.
+ *
+ * Nodes are the primary content units in a campaign: arcs, sessions,
+ * characters, creatures, items, locations, notes, and factions. Each node type
+ * has a corresponding detail table. This module handles listing, creating,
+ * reading, updating, and deleting nodes, including their type-specific detail
+ * records. All routes require authentication, and handlers enforce membership,
+ * ownership, and visibility rules.
+ */
+
 import { Router } from "express";
 import { prisma } from "../db";
 import { requireAuth } from "../middleware/auth";
@@ -5,9 +18,19 @@ import { createNodeSchema, updateNodeSchema } from "../lib/validation";
 
 const router = Router();
 
+// Every node endpoint requires authentication.
 router.use(requireAuth);
 
-// Helper to build node visibility filter
+/**
+ * Build a Prisma `where` fragment that filters nodes by visibility.
+ *
+ * The DM bypasses all visibility checks. Other members see public nodes plus
+ * their own private nodes. DM-only nodes are hidden from non-DMs.
+ *
+ * @param campaignDmId - UUID of the campaign DM, or null if unavailable.
+ * @param userId - UUID of the caller.
+ * @returns A Prisma-compatible visibility filter object.
+ */
 function buildNodeVisibilityFilter(campaignDmId: string | null, userId: string) {
   const isDm = campaignDmId === userId;
   if (isDm) return {};
@@ -19,7 +42,16 @@ function buildNodeVisibilityFilter(campaignDmId: string | null, userId: string) 
   };
 }
 
-// Helper to include detail based on type
+/**
+ * Return the Prisma include fragment for a node's type-specific detail record.
+ *
+ * Because detail tables differ per node type, this helper maps the node type
+ * string to the correct relation include. It is used when fetching a node so
+ * the response contains the relevant detail payload.
+ *
+ * @param type - Node type, e.g. "CHARACTER" or "LOCATION".
+ * @returns Prisma include object for the matching detail relation.
+ */
 function detailInclude(type: string) {
   switch (type) {
     case "ARC":
@@ -41,7 +73,18 @@ function detailInclude(type: string) {
   }
 }
 
-// Helper to create detail record
+/**
+ * Create the type-specific detail record for a newly created node.
+ *
+ * Runs inside the Prisma transaction passed as `tx`. Each case extracts the
+ * relevant fields from the flexible `details` object and stores them in the
+ * matching detail table.
+ *
+ * @param tx - Prisma transaction client.
+ * @param nodeId - UUID of the newly created node.
+ * @param type - Node type.
+ * @param details - Flexible key/value payload from the client.
+ */
 async function createDetail(tx: any, nodeId: string, type: string, details: Record<string, unknown>) {
   switch (type) {
     case "ARC":
@@ -140,7 +183,18 @@ async function createDetail(tx: any, nodeId: string, type: string, details: Reco
   }
 }
 
-// Helper to update detail record
+/**
+ * Update (or create if missing) the type-specific detail record for a node.
+ *
+ * Uses Prisma `upsert` so PATCH requests can add detail data to a node that did
+ * not previously have any. Each branch only updates fields that are provided,
+ * leaving existing values intact when omitted.
+ *
+ * @param tx - Prisma transaction client.
+ * @param nodeId - UUID of the node being updated.
+ * @param type - Node type.
+ * @param details - Flexible key/value payload from the client.
+ */
 async function updateDetail(tx: any, nodeId: string, type: string, details: Record<string, unknown>) {
   switch (type) {
     case "ARC":
@@ -308,7 +362,15 @@ async function updateDetail(tx: any, nodeId: string, type: string, details: Reco
   }
 }
 
-// GET /api/campaigns/:campaignId/nodes — list nodes in campaign
+/**
+ * GET /api/nodes/campaign/:campaignId
+ *
+ * List all nodes in a campaign that the caller is allowed to see.
+ *
+ * Only campaign members may access this endpoint. Nodes are filtered by the
+ * visibility helper so non-DM members do not see DM-only or others' private
+ * nodes. The listing is sorted by node type and then title.
+ */
 router.get("/campaign/:campaignId", async (req, res) => {
   const { campaignId } = req.params;
   const userId = req.user!.userId;
@@ -338,7 +400,9 @@ router.get("/campaign/:campaignId", async (req, res) => {
     include: {
       owner: { select: { id: true, displayName: true } },
       tags: true,
-      ...detailInclude("ARC"), // we need a way to include all possible details
+      // Spread the detail include for the ARC case as a representative example;
+      // the API currently returns all detail relations through other endpoints.
+      ...detailInclude("ARC"),
     },
     orderBy: [{ type: "asc" }, { title: "asc" }],
   });
@@ -346,7 +410,15 @@ router.get("/campaign/:campaignId", async (req, res) => {
   res.json(nodes);
 });
 
-// POST /api/campaigns/:campaignId/nodes — create node
+/**
+ * POST /api/nodes/campaign/:campaignId
+ *
+ * Create a new node in a campaign.
+ *
+ * Only campaign members may create nodes. The caller becomes the node's owner.
+ * Node creation and the associated detail-record creation run inside a Prisma
+ * transaction so the database stays consistent.
+ */
 router.post("/campaign/:campaignId", async (req, res) => {
   const { campaignId } = req.params;
   const userId = req.user!.userId;
@@ -394,6 +466,8 @@ router.post("/campaign/:campaignId", async (req, res) => {
         },
       });
 
+      // If the client supplied type-specific details, create the detail record
+      // in the same transaction.
       if (details && Object.keys(details).length > 0) {
         await createDetail(tx, created.id, type, details);
       }
@@ -401,7 +475,7 @@ router.post("/campaign/:campaignId", async (req, res) => {
       return created;
     });
 
-    // Re-fetch with detail included
+    // Re-fetch with detail included so the response contains the full payload.
     const fullNode = await prisma.node.findUnique({
       where: { id: node.id },
       include: {
@@ -418,7 +492,15 @@ router.post("/campaign/:campaignId", async (req, res) => {
   }
 });
 
-// GET /api/nodes/:id — get single node
+/**
+ * GET /api/nodes/:id
+ *
+ * Get a single node with all of its detail relations, hierarchy, tags, links,
+ * and visible blocks.
+ *
+ * The caller must be allowed to view the node based on its visibility setting.
+ * Blocks attached to the node are filtered separately by block visibility.
+ */
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -456,7 +538,7 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  // Visibility check
+  // Visibility check against the node itself.
   const isOwner = node.ownerId === userId;
   const isDm = node.campaign?.dmId === userId;
   const isVisible =
@@ -469,7 +551,7 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  // Filter blocks by visibility
+  // Filter blocks by visibility, matching the rules used in blocks.ts.
   const blocks = await prisma.nodeBlock.findMany({
     where: {
       nodeId: id,
@@ -488,7 +570,15 @@ router.get("/:id", async (req, res) => {
   res.json({ ...node, blocks });
 });
 
-// PATCH /api/nodes/:id — update node
+/**
+ * PATCH /api/nodes/:id
+ *
+ * Update a node's core fields and/or its type-specific details.
+ *
+ * Only the node owner or the campaign DM may edit a node. The node update and
+ * detail upsert run inside a transaction. After the transaction, the full node
+ * is re-fetched and its visible blocks are included in the response.
+ */
 router.patch("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -530,6 +620,7 @@ router.patch("/:id", async (req, res) => {
         },
       });
 
+      // Upsert type-specific details when provided.
       if (details && Object.keys(details).length > 0) {
         await updateDetail(tx, id, node.type, details);
       }
@@ -537,7 +628,7 @@ router.patch("/:id", async (req, res) => {
       return nodeUpdate;
     });
 
-    // Re-fetch full node
+    // Re-fetch full node with all relations so the response is complete.
     const fullNode = await prisma.node.findUnique({
       where: { id: updated.id },
       include: {
@@ -566,7 +657,7 @@ router.patch("/:id", async (req, res) => {
       },
     });
 
-    // Filter blocks
+    // Filter blocks by visibility before returning them.
     const blocks = await prisma.nodeBlock.findMany({
       where: {
         nodeId: id,
@@ -589,7 +680,14 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-// DELETE /api/nodes/:id — delete node
+/**
+ * DELETE /api/nodes/:id
+ *
+ * Permanently delete a node.
+ *
+ * Only the node owner or the campaign DM may delete a node. Prisma cascading
+ * deletes remove the node's detail record, blocks, and links automatically.
+ */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;

@@ -1,9 +1,19 @@
+/**
+ * Sidebar.tsx
+ *
+ * Renders the left-hand navigation panel. When no campaign is selected
+ * it lists the current user's campaigns. When a campaign id is present
+ * it shows campaign-specific navigation: node type filters with counts
+ * and a short list of recently updated nodes.
+ */
+
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useMyCampaigns } from "../../hooks/useCampaigns";
 import { useCampaign } from "../../hooks/useCampaigns";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
 import type { NodeType } from "../../types";
 
+// Human-readable labels for each node type, used in the campaign nav.
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
   ARC: "Arcs",
   SESSION: "Sessions",
@@ -15,6 +25,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   FACTION: "Factions",
 };
 
+// Order in which node type filters are rendered.
 const NODE_TYPE_ORDER: NodeType[] = [
   "ARC",
   "SESSION",
@@ -26,17 +37,34 @@ const NODE_TYPE_ORDER: NodeType[] = [
   "NOTE",
 ];
 
+/**
+ * Top-level sidebar router.
+ *
+ * Uses React Router's `useParams` to decide whether to render the
+ * campaigns list or the navigation panel for a specific campaign.
+ */
 export function Sidebar() {
   const navigate = useNavigate();
   const { campaignId } = useParams();
 
+  // No campaign selected: show the user's campaigns list.
   if (!campaignId) {
     return <CampaignsSidebar navigate={navigate} />;
   }
 
+  // Campaign selected: show that campaign's node navigation.
   return <CampaignNavSidebar campaignId={campaignId} navigate={navigate} />;
 }
 
+/**
+ * Sidebar view shown on non-campaign routes (e.g. /campaigns).
+ *
+ * @param navigate - React Router's navigate function for routing.
+ *
+ * Fetches the user's campaigns with `useMyCampaigns` and renders each
+ * campaign as a button. Campaigns where the current user is the DM are
+ * badged with "DM".
+ */
 function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
   const { data: campaigns, isLoading } = useMyCampaigns();
 
@@ -57,6 +85,7 @@ function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
           >
             <div className="flex items-center justify-between">
               <span className="truncate">{campaign.name}</span>
+              {/* Badge the campaign if the current user is its DM */}
               {campaign.dmId === campaign.dm?.id && (
                 <span className="ml-2 text-[10px] rounded bg-blue-100 px-1.5 py-0.5 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   DM
@@ -67,6 +96,7 @@ function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
         ))}
       </div>
 
+      {/* Empty state when the user has no campaigns */}
       {campaigns?.length === 0 && (
         <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
           No campaigns yet
@@ -76,6 +106,19 @@ function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
   );
 }
 
+/**
+ * Sidebar view shown when viewing a specific campaign.
+ *
+ * @param campaignId - The id of the campaign being viewed.
+ * @param navigate   - React Router's navigate function for routing.
+ *
+ * Reads the active node type filter from the URL search params
+ * (`?type=CHARACTER`) and the campaign details from TanStack Query.
+ * Provides:
+ * - A link back to the campaign overview.
+ * - Filter buttons for each node type with counts and quick-create actions.
+ * - A list of the most recent nodes.
+ */
 function CampaignNavSidebar({
   campaignId,
   navigate,
@@ -95,8 +138,10 @@ function CampaignNavSidebar({
     );
   }
 
+  // If the campaign query returned nothing, render nothing.
   if (!campaign) return null;
 
+  // Count nodes per type so each filter can show a badge.
   const nodesByType = campaign.nodes?.reduce(
     (acc, node) => {
       acc[node.type] = (acc[node.type] || 0) + 1;
@@ -114,6 +159,7 @@ function CampaignNavSidebar({
         ← All Campaigns
       </button> */}
 
+      {/* Campaign title links back to the campaign overview */}
       <button
         onClick={() => navigate(`/campaigns/${campaignId}`)}
         className="mb-1 text-left text-sm font-bold text-gray-800 hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
@@ -121,10 +167,12 @@ function CampaignNavSidebar({
         {campaign.name}
       </button>
 
+      {/* Node type filters */}
       <div className="mb-4 space-y-1">
         {NODE_TYPE_ORDER.map((type) => {
           const count = nodesByType?.[type] || 0;
           const isActive = activeType === type;
+
           return (
             <div
               key={type}
@@ -134,6 +182,7 @@ function CampaignNavSidebar({
                   : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
               }`}
             >
+              {/* Filter button: navigate to campaign with type query param */}
               <button
                 onClick={() =>
                   navigate(`/campaigns/${campaignId}?type=${type}`)
@@ -151,6 +200,8 @@ function CampaignNavSidebar({
                   {count}
                 </span>
               </button>
+
+              {/* Quick-create button opens the creation modal by setting create=1 */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -166,6 +217,7 @@ function CampaignNavSidebar({
         })}
       </div>
 
+      {/* Recently updated nodes for quick access */}
       <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
         Recent Nodes
       </h3>

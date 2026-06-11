@@ -1,16 +1,40 @@
 import { useState } from "react";
 
-// Modal for inviting a user to the campaign by email.
+/**
+ * ============================================================================
+ * campaign-detail/AddMemberModal.tsx
+ * ============================================================================
+ *
+ * Modal dialog for inviting a user to the campaign by email address.
+ *
+ * Props:
+ *  - onAdd: async callback that receives `{ email, role }` and persists the
+ *           invitation.
+ *  - onClose: callback to dismiss the modal.
+ *  - isPending: whether the add-member mutation is in flight.
+ */
+
 interface Props {
   onAdd: (data: { email: string; role: "PLAYER" | "LOREMASTER" }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
+/**
+ * AddMemberModal – form for adding a new campaign member.
+ *
+ * State:
+ *  - email: the invitee's email address
+ *  - role: campaign role, either PLAYER (default) or LOREMASTER
+ */
 export function AddMemberModal({ onAdd, onClose, isPending }: Props) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"PLAYER" | "LOREMASTER">("PLAYER");
 
+  /**
+   * Submits the form, calls `onAdd`, and resets the local form state.
+   * The parent is responsible for actually closing the modal on success.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onAdd({ email, role });

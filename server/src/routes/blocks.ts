@@ -1,3 +1,14 @@
+/**
+ * routes/blocks.ts
+ *
+ * Router for node content blocks.
+ *
+ * Blocks are structured pieces of content attached to a node (text, rich text,
+ * or image). This module handles listing, creating, updating, deleting, and
+ * reordering blocks. All routes require authentication, and each handler
+ * enforces campaign membership or ownership rules before touching data.
+ */
+
 import { Router } from "express";
 import { prisma } from "../db";
 import { requireAuth } from "../middleware/auth";
@@ -5,13 +16,26 @@ import { createBlockSchema, updateBlockSchema, reorderBlocksSchema } from "../li
 
 const router = Router();
 
+// Every block endpoint requires a logged-in user.
 router.use(requireAuth);
 
-// GET /api/nodes/:nodeId/blocks — list blocks for a node
+/**
+ * GET /api/blocks/node/:nodeId
+ *
+ * List all blocks for a node that the caller is allowed to see.
+ *
+ * Access rules:
+ * - The node must exist.
+ * - The caller must be able to view the node (public, owner of private, or DM
+ *   for DM-only).
+ * - Returned blocks are filtered by visibility: public blocks, the caller's own
+ *   private blocks, and DM-only blocks when the caller is the DM.
+ */
 router.get("/node/:nodeId", async (req, res) => {
   const { nodeId } = req.params;
   const userId = req.user!.userId;
 
+  // Load the node and its campaign's DM so we can compute access rights.
   const node = await prisma.node.findUnique({
     where: { id: nodeId },
     include: { campaign: { select: { dmId: true } } },
@@ -25,7 +49,7 @@ router.get("/node/:nodeId", async (req, res) => {
   const isDm = node.campaign?.dmId === userId;
   const isOwner = node.ownerId === userId;
 
-  // Check access to node first
+  // Check access to node first.
   const canAccessNode =
     node.visibility === "PUBLIC" ||
     (node.visibility === "PRIVATE" && isOwner) ||
@@ -36,12 +60,14 @@ router.get("/node/:nodeId", async (req, res) => {
     return;
   }
 
+  // Query blocks with the same visibility filtering rules applied.
   const blocks = await prisma.nodeBlock.findMany({
     where: {
       nodeId,
       OR: [
         { visibility: "PUBLIC" as const },
         { authorId: userId, visibility: "PRIVATE" as const },
+        // DM-only blocks are visible only to the campaign DM.
         ...(isDm ? [{ visibility: "DM_ONLY" as const }] : []),
       ],
     },
@@ -54,7 +80,15 @@ router.get("/node/:nodeId", async (req, res) => {
   res.json(blocks);
 });
 
-// POST /api/nodes/:nodeId/blocks — create block
+/**
+ * POST /api/blocks/node/:nodeId
+ *
+ * Create a new content block on a node.
+ *
+ * Only campaign members (DM, node owner, or recorded campaign member) can add
+ * blocks. If no explicit ordering is provided, the block is appended after the
+ * current highest-ordered block.
+ */
 router.post("/node/:nodeId", async (req, res) => {
   const { nodeId } = req.params;
   const userId = req.user!.userId;
@@ -71,6 +105,9 @@ router.post("/node/:nodeId", async (req, res) => {
 
   const isDm = node.campaign?.dmId === userId;
   const isOwner = node.ownerId === userId;
+
+  // Membership check: DM or node owner is always allowed; otherwise require a
+  // matching CampaignMember record.
   const isMember =
     isDm ||
     isOwner ||
@@ -91,7 +128,7 @@ router.post("/node/:nodeId", async (req, res) => {
 
   const { type, content, visibility, ordering } = parse.data;
 
-  // Get max ordering if not provided
+  // Get max ordering if not provided so the new block lands at the end.
   let finalOrdering = ordering;
   if (finalOrdering === undefined) {
     const agg = await prisma.nodeBlock.aggregate({
@@ -118,7 +155,13 @@ router.post("/node/:nodeId", async (req, res) => {
   res.status(201).json(block);
 });
 
-// PATCH /api/blocks/:id — update block
+/**
+ * PATCH /api/blocks/:id
+ *
+ * Update a block's type, content, visibility, or ordering.
+ *
+ * Only the block's original author or the campaign DM may edit it.
+ */
 router.patch("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -164,7 +207,13 @@ router.patch("/:id", async (req, res) => {
   res.json(updated);
 });
 
-// DELETE /api/blocks/:id — delete block
+/**
+ * DELETE /api/blocks/:id
+ *
+ * Delete a content block.
+ *
+ * Only the block's author or the campaign DM may delete it.
+ */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -192,7 +241,15 @@ router.delete("/:id", async (req, res) => {
   res.json({ message: "Block deleted" });
 });
 
-// PATCH /api/nodes/:nodeId/blocks/reorder — bulk reorder
+/**
+ * PATCH /api/blocks/node/:nodeId/reorder
+ *
+ * Bulk-update the ordering of all blocks in a node.
+ *
+ * Only the node owner or the campaign DM may reorder blocks. The updates run
+ * inside a Prisma transaction so either all order values are persisted or none
+ * are, avoiding a corrupted sort order on partial failure.
+ */
 router.patch("/node/:nodeId/reorder", async (req, res) => {
   const { nodeId } = req.params;
   const userId = req.user!.userId;
@@ -222,6 +279,7 @@ router.patch("/node/:nodeId/reorder", async (req, res) => {
 
   const { blockOrders } = parse.data;
 
+  // Run all ordering updates atomically.
   await prisma.$transaction(
     blockOrders.map((bo) =>
       prisma.nodeBlock.update({
@@ -231,6 +289,7 @@ router.patch("/node/:nodeId/reorder", async (req, res) => {
     )
   );
 
+  // Return the reordered list with visibility filtering applied.
   const blocks = await prisma.nodeBlock.findMany({
     where: {
       nodeId,

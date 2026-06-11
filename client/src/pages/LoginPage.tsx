@@ -4,14 +4,55 @@ import { api } from "../api/axios";
 import { isAxiosError } from "axios";
 import { useAuthStore } from "../stores/authStore";
 
+/**
+ * ============================================================================
+ * LoginPage.tsx
+ * ============================================================================
+ *
+ * Public route component for signing in.
+ * Route: /login
+ *
+ * Responsibilities:
+ *  - Collect email and password from the user.
+ *  - POST credentials to `/auth/login`.
+ *  - Fetch the current user from `/auth/me` on success and store it in auth state.
+ *  - Redirect to `/campaigns` after a successful login.
+ *  - Display server or network error messages.
+ */
+
+/**
+ * LoginPage – renders the sign-in form.
+ *
+ * State:
+ *  - email / password: controlled form inputs
+ *  - error: inline error message string
+ *  - loading: disables the submit button while the request is in flight
+ */
 export function LoginPage() {
   const navigate = useNavigate();
+
+  // Global auth store setter used to keep the UI in sync with the logged-in user.
   const { setUser } = useAuthStore();
+
+  // Form input state.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Feedback state.
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Submits the login credentials to the backend.
+   *
+   * On success:
+   *  1. The server sets an HTTP-only session cookie via the login response.
+   *  2. We call `/auth/me` to retrieve the user profile.
+   *  3. We update the auth store and redirect to the campaigns list.
+   *
+   * On failure we extract the most specific error message available from the
+   * Axios response and display it inline.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -44,12 +85,14 @@ export function LoginPage() {
           Sign in to CampaignHub
         </h1>
 
+        {/* Inline error alert */}
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         )}
 
+        {/* Login form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -86,6 +129,7 @@ export function LoginPage() {
           </button>
         </form>
 
+        {/* Link to the registration page */}
         <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Don't have an account?{" "}
           <Link

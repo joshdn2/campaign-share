@@ -1,7 +1,25 @@
 import type { Node } from "../../../types";
 
-// Displays character-specific fields in a two-column grid.
-export function CharacterDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/CharacterDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for CHARACTER nodes. Displays character fields such as race,
+ * class, level, alignment, and descriptive text in a responsive two-column grid.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * CharacterDetails – renders character-specific fields in a two-column grid.
+ *
+ * Only fields that are present on the `characterDetail` object are rendered.
+ * Longer descriptive fields span both columns.
+ */
+export function CharacterDetails({ node }: Props) {
   if (!node.characterDetail) return null;
   const d = node.characterDetail;
 

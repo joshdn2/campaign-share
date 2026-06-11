@@ -1,5 +1,14 @@
 import { useState } from "react";
-// Modal for creating a new node (any type).
+
+/**
+ * ============================================================================
+ * campaign-detail/CreateNodeModal.tsx
+ * ============================================================================
+ *
+ * Modal dialog for creating a new node of any type. The caller supplies a
+ * label (e.g. "Character") so the modal title reflects the current node type.
+ */
+
 interface Props {
   label: string;
   onCreate: (data: { title: string; excerpt: string }) => Promise<void>;
@@ -7,6 +16,13 @@ interface Props {
   isPending: boolean;
 }
 
+/**
+ * CreateNodeModal – form for creating a new node.
+ *
+ * State:
+ *  - title: required node title
+ *  - excerpt: optional short summary shown in lists and grids
+ */
 export function CreateNodeModal({
   label,
   onCreate,
@@ -16,6 +32,7 @@ export function CreateNodeModal({
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
 
+  /** Submits the form, creates the node, and resets local form state. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onCreate({ title, excerpt });

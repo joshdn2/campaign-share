@@ -32,7 +32,26 @@ import { BlocksSection } from "./node-detail/BlocksSection";
 import { AddBlockModal } from "./node-detail/AddBlockModal";
 import { ParentSelector } from "./node-detail/ParentSelector";
 
-// Maps each node type to its detail section component.
+/**
+ * ============================================================================
+ * NodeDetailPage.tsx
+ * ============================================================================
+ *
+ * Top-level route component for viewing any type of node.
+ * Route: /campaigns/:campaignId/nodes/:nodeId
+ *
+ * Responsibilities:
+ *  - Load the requested node and its blocks.
+ *  - Render the node header, type-specific details, links, tags, and blocks.
+ *  - Allow editing/deleting the node title when the user owns the node or is DM.
+ *  - Allow changing the node's parent within the campaign hierarchy.
+ *  - Support adding new blocks through a modal.
+ */
+
+/**
+ * Maps each NodeType to its dedicated detail-section component.
+ * NOTE nodes have no extra detail fields, so they render nothing here.
+ */
 const DETAIL_COMPONENTS: Record<NodeType, React.FC<{ node: Node }>> = {
   ARC: ArcDetails,
   SESSION: SessionDetails,
@@ -46,30 +65,59 @@ const DETAIL_COMPONENTS: Record<NodeType, React.FC<{ node: Node }>> = {
 
 /**
  * NodeDetailPage – full view for any node type.
- * Shows header, type-specific details, links, tags, blocks, and parent selector.
+ *
+ * Reads `campaignId` and `nodeId` from the URL. Shows the node header,
+ * type-specific details, parent/children links, related node links, tags, and
+ * editable blocks.
  */
 export function NodeDetailPage() {
+  // --------------------------------------------------------------------------
+  // Routing
+  // --------------------------------------------------------------------------
+
   const { campaignId, nodeId } = useParams<{
     campaignId: string;
     nodeId: string;
   }>();
   const navigate = useNavigate();
+
+  // --------------------------------------------------------------------------
+  // Auth & permissions
+  // --------------------------------------------------------------------------
+
   const { user } = useAuthStore();
 
-  // Data
+  // --------------------------------------------------------------------------
+  // Data fetching
+  // --------------------------------------------------------------------------
+
   const { data: node, isLoading, error } = useNode(nodeId!);
+
+  // All campaign nodes are fetched so the parent selector can list candidates.
   const { data: campaignNodes } = useCampaignNodes(campaignId!);
+
+  // Blocks are the free-form content attached to this node.
   const { data: blocks } = useNodeBlocks(nodeId!);
 
+  // --------------------------------------------------------------------------
   // Mutations
+  // --------------------------------------------------------------------------
+
   const updateNode = useUpdateNode(nodeId!);
   const deleteNode = useDeleteNode();
   const createBlock = useCreateBlock(nodeId!);
   const updateBlock = useUpdateBlock(nodeId!);
   const deleteBlock = useDeleteBlock(nodeId!);
 
-  // UI state
+  // --------------------------------------------------------------------------
+  // Local UI state
+  // --------------------------------------------------------------------------
+
   const [showAddBlock, setShowAddBlock] = useState(false);
+
+  // --------------------------------------------------------------------------
+  // Guards
+  // --------------------------------------------------------------------------
 
   if (isLoading) {
     return (
@@ -83,21 +131,31 @@ export function NodeDetailPage() {
     return <ErrorMessage message={error?.message || "Node not found"} />;
   }
 
+  // Permission checks: the creator of the node and the campaign DM can edit.
   const isOwner = node.ownerId === user?.id;
   const isDm = node.campaign?.dmId === user?.id;
   const canEdit = isOwner || isDm;
 
+  // Pick the detail section component based on the node's type.
   const DetailComponent = DETAIL_COMPONENTS[node.type];
 
+  /**
+   * Confirms and then deletes the current node. On success, redirects back to
+   * the parent campaign detail page.
+   */
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this node?")) return;
     await deleteNode.mutateAsync({ nodeId: node.id, campaignId: campaignId! });
     navigate(`/campaigns/${campaignId}`);
   };
 
+  // --------------------------------------------------------------------------
+  // Render
+  // --------------------------------------------------------------------------
+
   return (
     <div className="space-y-6">
-      {/* Title + badges */}
+      {/* Title, type badge, visibility badge, and delete action */}
       <NodeHeader
         node={node}
         canEdit={canEdit}
@@ -109,7 +167,7 @@ export function NodeDetailPage() {
         isUpdating={updateNode.isPending}
       />
 
-      {/* Type-specific details */}
+      {/* Type-specific detail section (if any) */}
       {DetailComponent && (
         <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
           <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-white">
@@ -119,7 +177,7 @@ export function NodeDetailPage() {
         </section>
       )}
 
-      {/* Parent selector */}
+      {/* Parent selector: only shown to users who can edit this node */}
       {canEdit && campaignNodes && (
         <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -133,7 +191,7 @@ export function NodeDetailPage() {
         </section>
       )}
 
-      {/* Parent / Children read-only links */}
+      {/* Read-only link to the parent node */}
       {node.parent && (
         <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -149,6 +207,8 @@ export function NodeDetailPage() {
           </p>
         </section>
       )}
+
+      {/* Read-only list of child nodes */}
       {node.children && node.children.length > 0 && (
         <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
           <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -170,13 +230,13 @@ export function NodeDetailPage() {
         </section>
       )}
 
-      {/* Links */}
+      {/* Incoming and outgoing manually-created node links */}
       <LinksSection node={node} campaignId={campaignId!} />
 
-      {/* Tags */}
+      {/* Tag pills */}
       <TagsSection tags={node.tags} />
 
-      {/* Blocks */}
+      {/* Blocks: free-form content attached to the node */}
       <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -203,7 +263,7 @@ export function NodeDetailPage() {
         />
       </section>
 
-      {/* Add Block Modal */}
+      {/* Add Block modal */}
       {showAddBlock && (
         <AddBlockModal
           onAdd={async (data) => {

@@ -1,7 +1,25 @@
 import type { Node } from "../../../types";
 
-// Displays faction-specific fields.
-export function FactionDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/FactionDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for FACTION nodes. Displays faction fields such as type,
+ * alignment, size, reach, influence level, leader, headquarters, and descriptive
+ * text in a responsive two-column grid.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * FactionDetails – renders faction-specific fields.
+ *
+ * Only fields that are present on the `factionDetail` object are rendered.
+ */
+export function FactionDetails({ node }: Props) {
   if (!node.factionDetail) return null;
   const d = node.factionDetail;
 

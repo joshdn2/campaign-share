@@ -1,7 +1,24 @@
 import type { Node } from "../../../types";
 
-// Displays item-specific fields.
-export function ItemDetails({ node }: { node: Node }) {
+/**
+ * ============================================================================
+ * node-detail/sections/ItemDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for ITEM nodes. Displays item fields such as type, rarity,
+ * value, weight, attunement requirement, and abilities.
+ */
+
+interface Props {
+  node: Node;
+}
+
+/**
+ * ItemDetails – renders item-specific fields.
+ *
+ * Only fields that are present on the `itemDetail` object are rendered.
+ */
+export function ItemDetails({ node }: Props) {
   if (!node.itemDetail) return null;
   const d = node.itemDetail;
 

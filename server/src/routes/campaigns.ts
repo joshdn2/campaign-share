@@ -1,3 +1,15 @@
+/**
+ * routes/campaigns.ts
+ *
+ * Router for campaign management.
+ *
+ * Campaigns are the top-level container for nodes, members, and blocks. This
+ * module handles creating campaigns, listing a user's campaigns, reading and
+ * updating campaign details, and managing campaign membership. All routes are
+ * protected by requireAuth, and DM-only actions check that the caller is the
+ * campaign's dmId.
+ */
+
 import { Router } from "express";
 import { prisma } from "../db";
 import { requireAuth } from "../middleware/auth";
@@ -10,13 +22,23 @@ import {
 
 const router = Router();
 
-// All campaign routes require auth
+// All campaign routes require authentication.
 router.use(requireAuth);
 
-// Helper: build visibility filter for nodes
+/**
+ * Build a Prisma `where` fragment that filters nodes by visibility.
+ *
+ * The DM sees every node in the campaign. Non-DM members see public nodes and
+ * their own private nodes; DM-only nodes are hidden from them.
+ *
+ * @param campaignDmId - UUID of the campaign's Dungeon Master.
+ * @param userId - UUID of the caller.
+ * @returns A Prisma-compatible object for the `where.OR` filter.
+ */
 function nodeVisibilityFilter(campaignDmId: string, userId: string) {
   const isDm = campaignDmId === userId;
   if (isDm) {
+    // Empty object means "no visibility restriction".
     return {};
   }
   return {
@@ -27,7 +49,12 @@ function nodeVisibilityFilter(campaignDmId: string, userId: string) {
   };
 }
 
-// POST /api/campaigns — create campaign, caller becomes DM
+/**
+ * POST /api/campaigns
+ *
+ * Create a new campaign. The authenticated caller automatically becomes the
+ * campaign's Dungeon Master (DM).
+ */
 router.post("/", async (req, res) => {
   const parse = createCampaignSchema.safeParse(req.body);
   if (!parse.success) {
@@ -58,7 +85,14 @@ router.post("/", async (req, res) => {
   res.status(201).json(campaign);
 });
 
-// GET /api/campaigns/my — list campaigns where user is DM or member
+/**
+ * GET /api/campaigns/my
+ *
+ * List campaigns where the caller is either the DM or a member.
+ *
+ * Results include the DM, all members, and counts for members and nodes.
+ * Ordered by most recently updated first.
+ */
 router.get("/my", async (req, res) => {
   const userId = req.user!.userId;
 
@@ -84,7 +118,14 @@ router.get("/my", async (req, res) => {
   res.json(campaigns);
 });
 
-// GET /api/campaigns/:id — get campaign detail with members and nodes
+/**
+ * GET /api/campaigns/:id
+ *
+ * Get full details for a single campaign, including members and nodes.
+ *
+ * Access is restricted to the DM and existing members. Nodes are filtered
+ * through nodeVisibilityFilter so members only see what they are allowed to.
+ */
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -107,7 +148,7 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  // Check if user has access (is DM or member)
+  // Check if user has access (is DM or member).
   const isDm = campaign.dmId === userId;
   const isMember = campaign.members.some((m) => m.userId === userId);
   if (!isDm && !isMember) {
@@ -115,7 +156,7 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  // Fetch nodes with visibility filter
+  // Fetch nodes with visibility filter applied.
   const nodes = await prisma.node.findMany({
     where: {
       campaignId: id,
@@ -132,7 +173,13 @@ router.get("/:id", async (req, res) => {
   res.json({ ...campaign, nodes });
 });
 
-// PATCH /api/campaigns/:id — update campaign (DM only)
+/**
+ * PATCH /api/campaigns/:id
+ *
+ * Update a campaign's name or description.
+ *
+ * Only the campaign DM may edit the campaign.
+ */
 router.patch("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -169,7 +216,14 @@ router.patch("/:id", async (req, res) => {
   res.json(updated);
 });
 
-// DELETE /api/campaigns/:id — delete campaign (DM only)
+/**
+ * DELETE /api/campaigns/:id
+ *
+ * Permanently delete a campaign and all dependent records.
+ *
+ * Only the campaign DM may delete it. Prisma's cascading deletes handle
+ * members, nodes, blocks, and detail records.
+ */
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -188,7 +242,14 @@ router.delete("/:id", async (req, res) => {
   res.json({ message: "Campaign deleted" });
 });
 
-// POST /api/campaigns/:id/members — add member by email (DM only)
+/**
+ * POST /api/campaigns/:id/members
+ *
+ * Add a user to the campaign by email.
+ *
+ * Only the DM may invite members. The target user must exist and cannot be the
+ * DM themselves. Duplicate memberships are rejected with a 409 conflict.
+ */
 router.post("/:id/members", async (req, res) => {
   const { id } = req.params;
   const userId = req.user!.userId;
@@ -243,7 +304,14 @@ router.post("/:id/members", async (req, res) => {
   res.status(201).json(member);
 });
 
-// DELETE /api/campaigns/:id/members/:userId — remove member (DM only)
+/**
+ * DELETE /api/campaigns/:id/members/:memberUserId
+ *
+ * Remove a member from the campaign.
+ *
+ * Only the DM may remove members. The deletion uses the composite primary key
+ * campaignId_userId.
+ */
 router.delete("/:id/members/:memberUserId", async (req, res) => {
   const { id, memberUserId } = req.params;
   const userId = req.user!.userId;
@@ -265,7 +333,13 @@ router.delete("/:id/members/:memberUserId", async (req, res) => {
   res.json({ message: "Member removed" });
 });
 
-// PATCH /api/campaigns/:id/members/:userId — update member role (DM only)
+/**
+ * PATCH /api/campaigns/:id/members/:memberUserId
+ *
+ * Update a member's role (PLAYER or LOREMASTER).
+ *
+ * Only the DM may change member roles.
+ */
 router.patch("/:id/members/:memberUserId", async (req, res) => {
   const { id, memberUserId } = req.params;
   const userId = req.user!.userId;

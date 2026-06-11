@@ -1,3 +1,14 @@
+/**
+ * ErrorMessage.tsx
+ *
+ * Simple reusable alert component for displaying error messages.
+ */
+
+/**
+ * Displays a styled error message box.
+ *
+ * @param message - The error text to show.
+ */
 export function ErrorMessage({ message }: { message: string }) {
   return (
     <div className="rounded-lg bg-red-50 p-4 text-red-700">

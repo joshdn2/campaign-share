@@ -1,7 +1,15 @@
 import { useState } from "react";
 import type { Campaign } from "../../types";
 
-// Renders campaign name + description. DM can edit inline.
+/**
+ * ============================================================================
+ * campaign-detail/CampaignInfoSection.tsx
+ * ============================================================================
+ *
+ * Renders the campaign name and description. The DM can toggle inline editing
+ * to update both fields; other users see a read-only view.
+ */
+
 interface Props {
   campaign: Campaign;
   isDm: boolean;
@@ -9,17 +17,26 @@ interface Props {
   isUpdating: boolean;
 }
 
+/**
+ * CampaignInfoSection – displays and edits the campaign's basic info.
+ *
+ * State:
+ *  - editing: toggles between read-only and edit mode
+ *  - name / description: controlled inputs seeded from the campaign prop
+ */
 export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Props) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(campaign.name);
   const [description, setDescription] = useState(campaign.description || "");
 
+  /** Enters edit mode and resets inputs to the current campaign values. */
   const startEditing = () => {
     setName(campaign.name);
     setDescription(campaign.description || "");
     setEditing(true);
   };
 
+  /** Persists the updated name and description, then exits edit mode. */
   const save = async () => {
     await onUpdate({ name, description });
     setEditing(false);
@@ -28,6 +45,7 @@ export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Pr
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
       {editing ? (
+        // Inline edit form
         <div className="space-y-3">
           <input
             value={name}
@@ -57,6 +75,7 @@ export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Pr
           </div>
         </div>
       ) : (
+        // Read-only view
         <div>
           <div className="mb-2 flex items-start justify-between">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{campaign.name}</h1>

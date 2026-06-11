@@ -1,7 +1,17 @@
 import { useState } from "react";
 import type { NodeBlock, Visibility } from "../../types";
 
-// Lists all blocks for a node with inline edit/delete controls.
+/**
+ * ============================================================================
+ * node-detail/BlocksSection.tsx
+ * ============================================================================
+ *
+ * Renders the list of blocks attached to a node and supports inline editing
+ * and deletion. Permission to edit a block is granted when:
+ *  - the user can edit the node (`canEdit`), AND
+ *  - the user is the block's author OR the campaign DM.
+ */
+
 interface Props {
   blocks: NodeBlock[];
   canEdit: boolean;
@@ -11,17 +21,27 @@ interface Props {
   onDelete: (blockId: string) => void;
 }
 
+/**
+ * BlocksSection – lists all blocks for a node with inline edit/delete controls.
+ *
+ * State:
+ *  - editingBlock: id of the block currently in edit mode, or null
+ *  - editContent: textarea value for the block being edited
+ *  - editVisibility: visibility value for the block being edited
+ */
 export function BlocksSection({ blocks, canEdit, currentUserId, isDm, onEdit, onDelete }: Props) {
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editVisibility, setEditVisibility] = useState<Visibility>("PUBLIC");
 
+  /** Copies the block's current values into the edit form and enters edit mode. */
   const startEditing = (block: NodeBlock) => {
     setEditingBlock(block.id);
     setEditContent((block.content.text as string) || "");
     setEditVisibility(block.visibility);
   };
 
+  /** Persists the edited block content and visibility, then exits edit mode. */
   const save = async (blockId: string) => {
     await onEdit(blockId, { text: editContent }, editVisibility);
     setEditingBlock(null);
@@ -46,6 +66,7 @@ export function BlocksSection({ blocks, canEdit, currentUserId, isDm, onEdit, on
         />
       ))}
 
+      {/* Empty state when the node has no blocks yet */}
       {blocks.length === 0 && (
         <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
           No blocks yet. Add one to get started.
@@ -55,6 +76,13 @@ export function BlocksSection({ blocks, canEdit, currentUserId, isDm, onEdit, on
   );
 }
 
+/**
+ * BlockCard – renders a single block.
+ *
+ * In edit mode it shows a textarea and visibility selector. In read mode it
+ * shows the block metadata (type, visibility, author) and action buttons for
+ * users who are allowed to edit.
+ */
 function BlockCard({
   block,
   isEditing,
@@ -80,6 +108,7 @@ function BlockCard({
   onDelete: () => void;
   canEdit: boolean;
 }) {
+  // Color-code the block card border based on visibility.
   const borderClass =
     block.visibility === "PRIVATE"
       ? "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/10"
@@ -90,6 +119,7 @@ function BlockCard({
   return (
     <div className={`rounded-lg border p-4 ${borderClass}`}>
       {isEditing ? (
+        // Inline edit form
         <div className="space-y-2">
           <textarea
             value={editContent}
@@ -119,6 +149,7 @@ function BlockCard({
           </div>
         </div>
       ) : (
+        // Read-only view
         <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -154,6 +185,9 @@ function BlockCard({
   );
 }
 
+/**
+ * VisibilityBadge – small colored pill that displays a block or node visibility.
+ */
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const styles =
     visibility === "PUBLIC"

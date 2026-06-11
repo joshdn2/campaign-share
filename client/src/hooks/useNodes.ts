@@ -1,9 +1,26 @@
+/**
+ * useNodes.ts
+ *
+ * TanStack Query hooks for node resources. Nodes represent campaign
+ * entities such as arcs, sessions, characters, items, etc. Mutations
+ * invalidate both node and campaign queries so dependent UI updates.
+ */
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/axios";
 import type { Node } from "../types";
 
+// Shared root query key for all node queries.
 const NODES_KEY = "nodes";
 
+/**
+ * Fetches all nodes belonging to a campaign.
+ *
+ * @param campaignId - The campaign id.
+ * @returns A TanStack Query result wrapping Node[].
+ *
+ * Disabled until a truthy campaignId is provided.
+ */
 export function useCampaignNodes(campaignId: string) {
   return useQuery({
     queryKey: [NODES_KEY, "campaign", campaignId],
@@ -15,6 +32,14 @@ export function useCampaignNodes(campaignId: string) {
   });
 }
 
+/**
+ * Fetches a single node by id.
+ *
+ * @param nodeId - The node id.
+ * @returns A TanStack Query result wrapping Node.
+ *
+ * Disabled until a truthy nodeId is provided.
+ */
 export function useNode(nodeId: string) {
   return useQuery({
     queryKey: [NODES_KEY, nodeId],
@@ -26,6 +51,14 @@ export function useNode(nodeId: string) {
   });
 }
 
+/**
+ * Creates a new node within a campaign.
+ *
+ * @param campaignId - The campaign id.
+ * @returns A mutation accepting node creation input.
+ *
+ * On success it invalidates the campaign's node list and the campaign detail.
+ */
 export function useCreateNode(campaignId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -47,6 +80,15 @@ export function useCreateNode(campaignId: string) {
   });
 }
 
+/**
+ * Updates an existing node.
+ *
+ * @param nodeId - The node id.
+ * @returns A mutation accepting a partial node payload.
+ *
+ * On success it invalidates the node detail and, if the response contains
+ * the campaign id, the campaign's node list and campaign detail as well.
+ */
 export function useUpdateNode(nodeId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -70,6 +112,14 @@ export function useUpdateNode(nodeId: string) {
   });
 }
 
+/**
+ * Deletes a node.
+ *
+ * @returns A mutation accepting { nodeId, campaignId }.
+ *
+ * Returns both ids from the mutation so onSuccess can invalidate the
+ * campaign's node list and the campaign detail.
+ */
 export function useDeleteNode() {
   const qc = useQueryClient();
   return useMutation({
