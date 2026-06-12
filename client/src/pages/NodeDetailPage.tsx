@@ -4,7 +4,6 @@ import {
   useNode,
   useUpdateNode,
   useDeleteNode,
-  useCampaignNodes,
 } from "../hooks/useNodes";
 import {
   useNodeBlocks,
@@ -15,22 +14,13 @@ import {
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { ErrorMessage } from "../components/ui/ErrorMessage";
 import { useAuthStore } from "../stores/authStore";
-import type { Node, NodeType } from "../types";
-
 // Sub-components
 import { NodeHeader } from "./node-detail/NodeHeader";
-import { ArcDetails } from "./node-detail/sections/ArcDetails";
-import { SessionDetails } from "./node-detail/sections/SessionDetails";
-import { CharacterDetails } from "./node-detail/sections/CharacterDetails";
-import { CreatureDetails } from "./node-detail/sections/CreatureDetails";
-import { ItemDetails } from "./node-detail/sections/ItemDetails";
-import { LocationDetails } from "./node-detail/sections/LocationDetails";
-import { FactionDetails } from "./node-detail/sections/FactionDetails";
-import { LinksSection } from "./node-detail/LinksSection";
 import { TagsSection } from "./node-detail/TagsSection";
 import { BlocksSection } from "./node-detail/BlocksSection";
 import { AddBlockModal } from "./node-detail/AddBlockModal";
-import { ParentSelector } from "./node-detail/ParentSelector";
+import { ParentBreadcrumbs } from "./node-detail/ParentBreadcrumbs";
+import { NodeDetailsAndLinks } from "./node-detail/NodeDetailsAndLinks";
 
 /**
  * ============================================================================
@@ -40,35 +30,28 @@ import { ParentSelector } from "./node-detail/ParentSelector";
  * Top-level route component for viewing any type of node.
  * Route: /campaigns/:campaignId/nodes/:nodeId
  *
+ * Layout:
+ *  - Node header (title, type/visibility badges, delete action).
+ *  - Breadcrumb trail of ancestor nodes under the title.
+ *  - A shared collapsible "Details & Links" panel. On wide screens Details
+ *    occupies the left two thirds and Links sits in a sidebar on the right.
+ *    On narrow screens they stack. Both inner cards stretch to equal height.
+ *  - Blocks section as the primary, always-visible content area.
+ *  - Children and tags rendered below blocks when present.
+ *
  * Responsibilities:
  *  - Load the requested node and its blocks.
  *  - Render the node header, type-specific details, links, tags, and blocks.
  *  - Allow editing/deleting the node title when the user owns the node or is DM.
- *  - Allow changing the node's parent within the campaign hierarchy.
  *  - Support adding new blocks through a modal.
  */
-
-/**
- * Maps each NodeType to its dedicated detail-section component.
- * NOTE nodes have no extra detail fields, so they render nothing here.
- */
-const DETAIL_COMPONENTS: Record<NodeType, React.FC<{ node: Node }>> = {
-  ARC: ArcDetails,
-  SESSION: SessionDetails,
-  CHARACTER: CharacterDetails,
-  CREATURE: CreatureDetails,
-  ITEM: ItemDetails,
-  LOCATION: LocationDetails,
-  NOTE: () => null,
-  FACTION: FactionDetails,
-};
 
 /**
  * NodeDetailPage – full view for any node type.
  *
  * Reads `campaignId` and `nodeId` from the URL. Shows the node header,
- * type-specific details, parent/children links, related node links, tags, and
- * editable blocks.
+ * ancestor breadcrumbs, collapsible details/links panel, and the main blocks
+ * section.
  */
 export function NodeDetailPage() {
   // --------------------------------------------------------------------------
@@ -92,9 +75,6 @@ export function NodeDetailPage() {
   // --------------------------------------------------------------------------
 
   const { data: node, isLoading, error } = useNode(nodeId!);
-
-  // All campaign nodes are fetched so the parent selector can list candidates.
-  const { data: campaignNodes } = useCampaignNodes(campaignId!);
 
   // Blocks are the free-form content attached to this node.
   const { data: blocks } = useNodeBlocks(nodeId!);
@@ -136,9 +116,6 @@ export function NodeDetailPage() {
   const isDm = node.campaign?.dmId === user?.id;
   const canEdit = isOwner || isDm;
 
-  // Pick the detail section component based on the node's type.
-  const DetailComponent = DETAIL_COMPONENTS[node.type];
-
   /**
    * Confirms and then deletes the current node. On success, redirects back to
    * the parent campaign detail page.
@@ -167,46 +144,45 @@ export function NodeDetailPage() {
         isUpdating={updateNode.isPending}
       />
 
-      {/* Type-specific detail section (if any) */}
-      {DetailComponent && (
-        <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-white">
-            Details
+      {/* Breadcrumb trail of ancestor nodes (e.g. Westbridge › The Rusty Anchor). */}
+      <ParentBreadcrumbs
+        ancestors={node.ancestors || []}
+        campaignId={campaignId!}
+        currentTitle={node.title}
+      />
+
+      {/* Shared collapsible panel: Details (main) + Links (sidebar). */}
+      <NodeDetailsAndLinks node={node} campaignId={campaignId!} />
+
+      {/* Blocks: free-form content attached to the node (the main feature). */}
+      <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Blocks
           </h2>
-          <DetailComponent node={node} />
-        </section>
-      )}
-
-      {/* Parent selector: only shown to users who can edit this node */}
-      {canEdit && campaignNodes && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Parent
-          </h3>
-          <ParentSelector
-            node={node}
-            campaignNodes={campaignNodes}
-            onChange={(parentId) => updateNode.mutate({ parentId })}
-          />
-        </section>
-      )}
-
-      {/* Read-only link to the parent node */}
-      {node.parent && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Parent:{" "}
-            <button
-              onClick={() =>
-                navigate(`/campaigns/${campaignId}/nodes/${node.parent!.id}`)
-              }
-              className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
-              {node.parent.title}
-            </button>
-          </p>
-        </section>
-      )}
+          <button
+            onClick={() => setShowAddBlock(true)}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Add Block
+          </button>
+        </div>
+        <BlocksSection
+          blocks={blocks || []}
+          canEdit={canEdit}
+          currentUserId={user?.id || ""}
+          isDm={isDm}
+          onEdit={async (blockId, content, visibility) => {
+            await updateBlock.mutateAsync({
+              blockId,
+              data: { content, visibility },
+            });
+          }}
+          onDelete={(blockId) => {
+            if (confirm("Delete this block?")) deleteBlock.mutate(blockId);
+          }}
+        />
+      </section>
 
       {/* Read-only list of child nodes */}
       {node.children && node.children.length > 0 && (
@@ -230,38 +206,8 @@ export function NodeDetailPage() {
         </section>
       )}
 
-      {/* Incoming and outgoing manually-created node links */}
-      <LinksSection node={node} campaignId={campaignId!} />
-
       {/* Tag pills */}
       <TagsSection tags={node.tags} />
-
-      {/* Blocks: free-form content attached to the node */}
-      <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Blocks
-          </h2>
-          <button
-            onClick={() => setShowAddBlock(true)}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + Add Block
-          </button>
-        </div>
-        <BlocksSection
-          blocks={blocks || []}
-          canEdit={canEdit}
-          currentUserId={user?.id || ""}
-          isDm={isDm}
-          onEdit={async (blockId, content, visibility) => {
-            await updateBlock.mutateAsync({ blockId, data: { content, visibility } });
-          }}
-          onDelete={(blockId) => {
-            if (confirm("Delete this block?")) deleteBlock.mutate(blockId);
-          }}
-        />
-      </section>
 
       {/* Add Block modal */}
       {showAddBlock && (

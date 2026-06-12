@@ -178,6 +178,7 @@ export interface Node {
   owner: { id: string; displayName: string };
   campaign?: { id: string; name: string; dmId: string };
   parent?: { id: string; title: string; type: NodeType } | null;
+  ancestors?: { id: string; title: string; type: NodeType }[];
   children?: { id: string; title: string; type: NodeType }[];
   tags: NodeTag[];
   arcDetail?: ArcDetail | null;

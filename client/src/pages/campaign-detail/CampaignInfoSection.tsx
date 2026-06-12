@@ -43,7 +43,7 @@ export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Pr
   };
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
       {editing ? (
         // Inline edit form
         <div className="space-y-3">

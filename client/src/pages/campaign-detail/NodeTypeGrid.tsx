@@ -29,7 +29,7 @@ export function NodeTypeGrid({ campaignId, label, nodes }: Props) {
   if (nodes.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
       <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
         {label}s
       </h2>

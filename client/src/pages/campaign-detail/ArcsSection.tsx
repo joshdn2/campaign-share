@@ -34,7 +34,7 @@ export function ArcsSection({ campaignId, arcs, sessions, onAddSession }: Props)
   const arcSessions = (arcId: string) => sessions.filter((s) => s.parentId === arcId);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
       <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">Arcs</h2>
       <div className="space-y-4">
         {arcs.map((arc) => (

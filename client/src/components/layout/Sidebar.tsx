@@ -5,6 +5,15 @@
  * it lists the current user's campaigns. When a campaign id is present
  * it shows campaign-specific navigation: node type filters with counts
  * and a short list of recently updated nodes.
+ *
+ * Responsive behavior:
+ *  - On desktop (`md:` and up) the sidebar is a static, always-visible panel
+ *    on the left side of the layout.
+ *  - On mobile it renders off-canvas and slides in when `isOpen` is true.
+ *    A backdrop overlay lets the user dismiss it by tapping outside.
+ *  - Any navigation action from inside the sidebar automatically closes the
+ *    mobile drawer so the user isn't left staring at the menu after selecting
+ *    an item.
  */
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -12,6 +21,13 @@ import { useMyCampaigns } from "../../hooks/useCampaigns";
 import { useCampaign } from "../../hooks/useCampaigns";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
 import type { NodeType } from "../../types";
+
+interface SidebarProps {
+  /** Whether the mobile slide-over sidebar is currently open. */
+  isOpen?: boolean;
+  /** Callback to close the mobile slide-over sidebar. */
+  onClose?: () => void;
+}
 
 // Human-readable labels for each node type, used in the campaign nav.
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
@@ -37,23 +53,54 @@ const NODE_TYPE_ORDER: NodeType[] = [
   "NOTE",
 ];
 
+// Shared aside classes. On desktop the sidebar is static and visible. On mobile
+// it is fixed, full-height, and translated off-screen until `isOpen` is true.
+const SIDEBAR_CLASSES =
+  "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-gray-50 p-4 transition-transform duration-200 ease-in-out dark:border-gray-700 dark:bg-gray-900 md:static md:translate-x-0";
+
 /**
  * Top-level sidebar router.
  *
  * Uses React Router's `useParams` to decide whether to render the
  * campaigns list or the navigation panel for a specific campaign.
  */
-export function Sidebar() {
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { campaignId } = useParams();
 
+  // Wrap React Router's navigate so any in-sidebar navigation also closes the
+  // mobile drawer. On desktop `onClose` is a no-op because the sidebar is
+  // always visible.
+  const navigateAndClose = (path: string) => {
+    onClose?.();
+    navigate(path);
+  };
+
   // No campaign selected: show the user's campaigns list.
   if (!campaignId) {
-    return <CampaignsSidebar navigate={navigate} />;
+    return (
+      <CampaignsSidebar
+        isOpen={isOpen}
+        navigate={navigateAndClose}
+      />
+    );
   }
 
   // Campaign selected: show that campaign's node navigation.
-  return <CampaignNavSidebar campaignId={campaignId} navigate={navigate} />;
+  return (
+    <CampaignNavSidebar
+      campaignId={campaignId}
+      isOpen={isOpen}
+      navigate={navigateAndClose}
+    />
+  );
+}
+
+interface SidebarViewProps {
+  /** Whether the mobile slide-over sidebar is currently open. */
+  isOpen: boolean;
+  /** Wrapped navigate function that also closes the mobile drawer. */
+  navigate: (path: string) => void;
 }
 
 /**
@@ -65,45 +112,65 @@ export function Sidebar() {
  * campaign as a button. Campaigns where the current user is the DM are
  * badged with "DM".
  */
-function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
+function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
   const { data: campaigns, isLoading } = useMyCampaigns();
 
   return (
-    <aside className="w-64 border-r border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-      <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        My Campaigns
-      </h2>
-
-      {isLoading && <LoadingSpinner className="py-4" />}
-
-      <div className="space-y-1">
-        {campaigns?.map((campaign) => (
-          <button
-            key={campaign.id}
-            onClick={() => navigate(`/campaigns/${campaign.id}`)}
-            className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-center justify-between">
-              <span className="truncate">{campaign.name}</span>
-              {/* Badge the campaign if the current user is its DM */}
-              {campaign.dmId === campaign.dm?.id && (
-                <span className="ml-2 text-[10px] rounded bg-blue-100 px-1.5 py-0.5 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  DM
-                </span>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Empty state when the user has no campaigns */}
-      {campaigns?.length === 0 && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          No campaigns yet
-        </p>
+    <>
+      {/* Mobile backdrop: tap to close. Hidden on desktop. */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => navigate("/campaigns")}
+          aria-hidden="true"
+        />
       )}
-    </aside>
+
+      <aside
+        className={`${SIDEBAR_CLASSES} ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-label="Campaigns sidebar"
+      >
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          My Campaigns
+        </h2>
+
+        {isLoading && <LoadingSpinner className="py-4" />}
+
+        <div className="space-y-1">
+          {campaigns?.map((campaign) => (
+            <button
+              key={campaign.id}
+              onClick={() => navigate(`/campaigns/${campaign.id}`)}
+              className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              <div className="flex items-center justify-between">
+                <span className="truncate">{campaign.name}</span>
+                {/* Badge the campaign if the current user is its DM */}
+                {campaign.dmId === campaign.dm?.id && (
+                  <span className="ml-2 text-[10px] rounded bg-blue-100 px-1.5 py-0.5 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    DM
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Empty state when the user has no campaigns */}
+        {campaigns?.length === 0 && (
+          <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            No campaigns yet
+          </p>
+        )}
+      </aside>
+    </>
   );
+}
+
+interface CampaignNavSidebarProps extends SidebarViewProps {
+  campaignId: string;
 }
 
 /**
@@ -121,20 +188,32 @@ function CampaignsSidebar({ navigate }: { navigate: (path: string) => void }) {
  */
 function CampaignNavSidebar({
   campaignId,
+  isOpen,
   navigate,
-}: {
-  campaignId: string;
-  navigate: (path: string) => void;
-}) {
+}: CampaignNavSidebarProps) {
   const [searchParams] = useSearchParams();
   const activeType = searchParams.get("type") || "";
   const { data: campaign, isLoading } = useCampaign(campaignId);
 
   if (isLoading) {
     return (
-      <aside className="w-64 border-r border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-        <LoadingSpinner className="py-4" />
-      </aside>
+      <>
+        {isOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            onClick={() => navigate(`/campaigns/${campaignId}`)}
+            aria-hidden="true"
+          />
+        )}
+        <aside
+          className={`${SIDEBAR_CLASSES} ${
+            isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+          aria-label="Campaign navigation sidebar"
+        >
+          <LoadingSpinner className="py-4" />
+        </aside>
+      </>
     );
   }
 
@@ -151,92 +230,110 @@ function CampaignNavSidebar({
   );
 
   return (
-    <aside className="w-64 border-r border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-      {/* <button
-        onClick={() => navigate("/campaigns")}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+    <>
+      {/* Mobile backdrop: tap to close. Hidden on desktop. */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => navigate(`/campaigns/${campaignId}`)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`${SIDEBAR_CLASSES} ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        aria-label="Campaign navigation sidebar"
       >
-        ← All Campaigns
-      </button> */}
+        {/* <button
+          onClick={() => navigate("/campaigns")}
+          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          ← All Campaigns
+        </button> */}
 
-      {/* Campaign title links back to the campaign overview */}
-      <button
-        onClick={() => navigate(`/campaigns/${campaignId}`)}
-        className="mb-1 text-left text-sm font-bold text-gray-800 hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
-      >
-        {campaign.name}
-      </button>
+        {/* Campaign title links back to the campaign overview */}
+        <button
+          onClick={() => navigate(`/campaigns/${campaignId}`)}
+          className="mb-1 text-left text-sm font-bold text-gray-800 hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
+        >
+          {campaign.name}
+        </button>
 
-      {/* Node type filters */}
-      <div className="mb-4 space-y-1">
-        {NODE_TYPE_ORDER.map((type) => {
-          const count = nodesByType?.[type] || 0;
-          const isActive = activeType === type;
+        {/* Node type filters */}
+        <div className="mb-4 space-y-1">
+          {NODE_TYPE_ORDER.map((type) => {
+            const count = nodesByType?.[type] || 0;
+            const isActive = activeType === type;
 
-          return (
-            <div
-              key={type}
-              className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
-                isActive
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
-              }`}
-            >
-              {/* Filter button: navigate to campaign with type query param */}
-              <button
-                onClick={() =>
-                  navigate(`/campaigns/${campaignId}?type=${type}`)
-                }
-                className="flex flex-1 items-center justify-between text-left"
+            return (
+              <div
+                key={type}
+                className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  isActive
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
+                }`}
               >
-                <span>{NODE_TYPE_LABELS[type]}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    isActive
-                      ? "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200"
-                      : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                  }`}
+                {/* Filter button: navigate to campaign with type query param */}
+                <button
+                  onClick={() =>
+                    navigate(`/campaigns/${campaignId}?type=${type}`)
+                  }
+                  className="flex flex-1 items-center justify-between text-left"
                 >
-                  {count}
-                </span>
-              </button>
+                  <span>{NODE_TYPE_LABELS[type]}</span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      isActive
+                        ? "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200"
+                        : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
 
-              {/* Quick-create button opens the creation modal by setting create=1 */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/campaigns/${campaignId}?type=${type}&create=1`);
-                }}
-                className="ml-1 rounded p-0.5 text-gray-400 hover:bg-gray-300 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                title={`Create ${NODE_TYPE_LABELS[type]}`}
-              >
-                +
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                {/* Quick-create button opens the creation modal by setting create=1 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(
+                      `/campaigns/${campaignId}?type=${type}&create=1`,
+                    );
+                  }}
+                  className="ml-1 rounded p-0.5 text-gray-400 hover:bg-gray-300 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  title={`Create ${NODE_TYPE_LABELS[type]}`}
+                >
+                  +
+                </button>
+              </div>
+            );
+          })}
+        </div>
 
-      {/* Recently updated nodes for quick access */}
-      <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        Recent Nodes
-      </h3>
-      <div className="space-y-1">
-        {campaign.nodes?.slice(0, 8).map((node) => (
-          <button
-            key={node.id}
-            onClick={() =>
-              navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
-            }
-            className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <span className="mr-1 text-xs text-gray-400">
-              {node.type.slice(0, 3)}
-            </span>
-            {node.title}
-          </button>
-        ))}
-      </div>
-    </aside>
+        {/* Recently updated nodes for quick access */}
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          Recent Nodes
+        </h3>
+        <div className="space-y-1">
+          {campaign.nodes?.slice(0, 8).map((node) => (
+            <button
+              key={node.id}
+              onClick={() =>
+                navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
+              }
+              className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              <span className="mr-1 text-xs text-gray-400">
+                {node.type.slice(0, 3)}
+              </span>
+              {node.title}
+            </button>
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }

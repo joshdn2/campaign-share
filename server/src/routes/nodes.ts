@@ -493,6 +493,43 @@ router.post("/campaign/:campaignId", async (req, res) => {
 });
 
 /**
+ * Build the chain of ancestor nodes from the root down to (but not including)
+ * the requested node. This is used for breadcrumb navigation on the client.
+ *
+ * The schema currently supports a single parent per node, but a node may be
+ * nested several levels deep. The helper walks up the hierarchy until there is
+ * no parent or a cycle is detected.
+ *
+ * @param nodeId - Id of the node whose ancestors should be collected.
+ * @returns Array of ancestor nodes ordered from root to immediate parent.
+ */
+async function getAncestors(nodeId: string) {
+  const ancestors: Array<{ id: string; title: string; type: string }> = [];
+  const seen = new Set<string>();
+  let currentId: string | null = nodeId;
+
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId);
+    const current: {
+      parent: { id: string; title: string; type: string } | null;
+    } | null = await prisma.node.findUnique({
+      where: { id: currentId },
+      select: {
+        parent: { select: { id: true, title: true, type: true } },
+      },
+    });
+
+    if (!current?.parent) break;
+
+    // Prepend so the root ends up first in the array.
+    ancestors.unshift(current.parent);
+    currentId = current.parent.id;
+  }
+
+  return ancestors;
+}
+
+/**
  * GET /api/nodes/:id
  *
  * Get a single node with all of its detail relations, hierarchy, tags, links,
@@ -551,6 +588,9 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
+  // Fetch the full ancestor chain for breadcrumb navigation.
+  const ancestors = await getAncestors(id);
+
   // Filter blocks by visibility, matching the rules used in blocks.ts.
   const blocks = await prisma.nodeBlock.findMany({
     where: {
@@ -567,7 +607,7 @@ router.get("/:id", async (req, res) => {
     orderBy: { ordering: "asc" },
   });
 
-  res.json({ ...node, blocks });
+  res.json({ ...node, ancestors, blocks });
 });
 
 /**
@@ -657,6 +697,9 @@ router.patch("/:id", async (req, res) => {
       },
     });
 
+    // Fetch the full ancestor chain for breadcrumb navigation.
+    const ancestors = await getAncestors(id);
+
     // Filter blocks by visibility before returning them.
     const blocks = await prisma.nodeBlock.findMany({
       where: {
@@ -673,7 +716,7 @@ router.patch("/:id", async (req, res) => {
       orderBy: { ordering: "asc" },
     });
 
-    res.json({ ...fullNode!, blocks });
+    res.json({ ...fullNode!, ancestors, blocks });
   } catch (err) {
     console.error("Update node error:", err);
     res.status(500).json({ error: "Failed to update node" });
