@@ -152,7 +152,7 @@ export function NodeDetailPage() {
       />
 
       {/* Shared collapsible panel: Details (main) + Links (sidebar). */}
-      <NodeDetailsAndLinks node={node} campaignId={campaignId!} />
+      <NodeDetailsAndLinks node={node} campaignId={campaignId!} blocks={blocks} />
 
       {/* Blocks: free-form content attached to the node (the main feature). */}
       <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
@@ -181,6 +181,8 @@ export function NodeDetailPage() {
           onDelete={(blockId) => {
             if (confirm("Delete this block?")) deleteBlock.mutate(blockId);
           }}
+          campaignId={campaignId!}
+          nodeId={nodeId!}
         />
       </section>
 
@@ -217,6 +219,8 @@ export function NodeDetailPage() {
           }}
           onClose={() => setShowAddBlock(false)}
           isPending={createBlock.isPending}
+          campaignId={campaignId!}
+          nodeId={nodeId!}
         />
       )}
     </div>

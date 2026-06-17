@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { TaggedText } from "../../components/blocks/TaggedText";
+import { NodeTagInsert } from "../../components/blocks/NodeTagInsert";
 import type { NodeBlock, Visibility } from "../../types";
 
 /**
@@ -10,6 +12,9 @@ import type { NodeBlock, Visibility } from "../../types";
  * and deletion. Permission to edit a block is granted when:
  *  - the user can edit the node (`canEdit`), AND
  *  - the user is the block's author OR the campaign DM.
+ *
+ * TEXT blocks support "@" tagging of other nodes in the campaign. Tags are
+ * stored as `@[Node Title](node-id)` and rendered as clickable links.
  */
 
 interface Props {
@@ -19,6 +24,10 @@ interface Props {
   isDm: boolean;
   onEdit: (blockId: string, content: Record<string, unknown>, visibility: Visibility) => Promise<void>;
   onDelete: (blockId: string) => void;
+  /** Campaign id used for tag search and rendering tagged links. */
+  campaignId: string;
+  /** Node that owns these blocks (excluded from tag search). */
+  nodeId: string;
 }
 
 /**
@@ -29,7 +38,16 @@ interface Props {
  *  - editContent: textarea value for the block being edited
  *  - editVisibility: visibility value for the block being edited
  */
-export function BlocksSection({ blocks, canEdit, currentUserId, isDm, onEdit, onDelete }: Props) {
+export function BlocksSection({
+  blocks,
+  canEdit,
+  currentUserId,
+  isDm,
+  onEdit,
+  onDelete,
+  campaignId,
+  nodeId,
+}: Props) {
   const [editingBlock, setEditingBlock] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editVisibility, setEditVisibility] = useState<Visibility>("PUBLIC");
@@ -63,6 +81,8 @@ export function BlocksSection({ blocks, canEdit, currentUserId, isDm, onEdit, on
           onCancel={() => setEditingBlock(null)}
           onDelete={() => onDelete(block.id)}
           canEdit={canEdit && (block.authorId === currentUserId || isDm)}
+          campaignId={campaignId}
+          nodeId={nodeId}
         />
       ))}
 
@@ -95,6 +115,8 @@ function BlockCard({
   onCancel,
   onDelete,
   canEdit,
+  campaignId,
+  nodeId,
 }: {
   block: NodeBlock;
   isEditing: boolean;
@@ -107,7 +129,11 @@ function BlockCard({
   onCancel: () => void;
   onDelete: () => void;
   canEdit: boolean;
+  campaignId: string;
+  nodeId: string;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Color-code the block card border based on visibility.
   const borderClass =
     block.visibility === "PRIVATE"
@@ -116,17 +142,32 @@ function BlockCard({
         ? "border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-900/10"
         : "border-gray-100 dark:border-gray-800";
 
+  const isTextBlock = block.type === "TEXT";
+
   return (
     <div className={`rounded-lg border p-4 ${borderClass}`}>
       {isEditing ? (
         // Inline edit form
         <div className="space-y-2">
           <textarea
+            ref={textareaRef}
             value={editContent}
             onChange={(e) => onContentChange(e.target.value)}
             rows={4}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
+          {isTextBlock && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Tag a node:</span>
+              <NodeTagInsert
+                campaignId={campaignId}
+                currentNodeId={nodeId}
+                textareaRef={textareaRef}
+                content={editContent}
+                onChange={onContentChange}
+              />
+            </div>
+          )}
           <select
             value={editVisibility}
             onChange={(e) => onVisibilityChange(e.target.value as Visibility)}
@@ -176,8 +217,12 @@ function BlockCard({
               </div>
             )}
           </div>
-          <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-            {(block.content.text as string) || ""}
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            {isTextBlock ? (
+              <TaggedText text={(block.content.text as string) || ""} campaignId={campaignId} />
+            ) : (
+              <span className="whitespace-pre-wrap">{(block.content.text as string) || ""}</span>
+            )}
           </div>
         </div>
       )}

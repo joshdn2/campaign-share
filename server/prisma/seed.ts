@@ -44,24 +44,6 @@ async function main() {
     },
   });
 
-  // ─── Create Arc ───────────────────────────────────────────
-  const arc = await prisma.node.create({
-    data: {
-      type: NodeType.ARC,
-      title: "The Blood Moon Rises",
-      excerpt: "A strange red moon heralds an ancient awakening.",
-      ownerId: dm.id,
-      campaignId: campaign.id,
-      visibility: Visibility.PUBLIC,
-      arcDetail: {
-        create: {
-          arcNumber: 1,
-          description: "The first major story arc.",
-        },
-      },
-    },
-  });
-
   // ─── Create Sessions ──────────────────────────────────────
   const session1 = await prisma.node.create({
     data: {
@@ -71,7 +53,6 @@ async function main() {
       ownerId: dm.id,
       campaignId: campaign.id,
       visibility: Visibility.PUBLIC,
-      parentId: arc.id,
       sessionDetail: {
         create: {
           sessionNumber: 1,
@@ -90,7 +71,6 @@ async function main() {
       ownerId: dm.id,
       campaignId: campaign.id,
       visibility: Visibility.PUBLIC,
-      parentId: arc.id,
       sessionDetail: {
         create: {
           sessionNumber: 2,
@@ -275,7 +255,6 @@ async function main() {
   console.log(`   Campaign: ${campaign.name}`);
   console.log(`   DM: ${dm.displayName}`);
   console.log(`   Player: ${player.displayName}`);
-  console.log(`   Arc: ${arc.title}`);
   console.log(`   Sessions: 2`);
   console.log(`   Characters: 2`);
   console.log(`   Locations: 2 (with sub-location)`);

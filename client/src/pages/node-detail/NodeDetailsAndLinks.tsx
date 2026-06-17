@@ -6,9 +6,8 @@
  * Both inner cards stretch to the same height.
  */
 
-import type { Node, NodeType } from "../../types";
+import type { Node, NodeBlock, NodeType } from "../../types";
 
-import { ArcDetails } from "./sections/ArcDetails";
 import { SessionDetails } from "./sections/SessionDetails";
 import { CharacterDetails } from "./sections/CharacterDetails";
 import { CreatureDetails } from "./sections/CreatureDetails";
@@ -22,7 +21,6 @@ import { LinksSection } from "./LinksSection";
  * NOTE nodes have no extra detail fields, so they render nothing here.
  */
 const DETAIL_COMPONENTS: Record<NodeType, React.FC<{ node: Node }>> = {
-  ARC: ArcDetails,
   SESSION: SessionDetails,
   CHARACTER: CharacterDetails,
   CREATURE: CreatureDetails,
@@ -35,6 +33,8 @@ const DETAIL_COMPONENTS: Record<NodeType, React.FC<{ node: Node }>> = {
 interface Props {
   node: Node;
   campaignId: string;
+  /** Blocks used to derive mention-style links from inline tags. */
+  blocks?: NodeBlock[];
 }
 
 /**
@@ -44,7 +44,7 @@ interface Props {
  * occupies one third. On narrow screens they stack. Both cards use `h-full`
  * so the shorter one stretches to match the taller one.
  */
-export function NodeDetailsAndLinks({ node, campaignId }: Props) {
+export function NodeDetailsAndLinks({ node, campaignId, blocks }: Props) {
   const DetailComponent = DETAIL_COMPONENTS[node.type];
   const hasDetails = node.type !== "NOTE";
 
@@ -71,7 +71,7 @@ export function NodeDetailsAndLinks({ node, campaignId }: Props) {
             Links
           </h2>
           <div className="flex-1">
-            <LinksSection node={node} campaignId={campaignId} />
+            <LinksSection node={node} campaignId={campaignId} blocks={blocks} />
           </div>
         </section>
       </div>

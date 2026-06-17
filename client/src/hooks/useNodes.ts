@@ -2,7 +2,7 @@
  * useNodes.ts
  *
  * TanStack Query hooks for node resources. Nodes represent campaign
- * entities such as arcs, sessions, characters, items, etc. Mutations
+ * entities such as sessions, characters, items, etc. Mutations
  * invalidate both node and campaign queries so dependent UI updates.
  */
 

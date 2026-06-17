@@ -1,10 +1,5 @@
-import { useState } from "react";
-import type { BlockType, Visibility } from "../../types";
-
 /**
- * ============================================================================
- * node-detail/AddBlockModal.tsx
- * ============================================================================
+ * AddBlockModal.tsx
  *
  * Modal dialog for adding a new content block to a node.
  *
@@ -12,12 +7,22 @@ import type { BlockType, Visibility } from "../../types";
  *  - type: TEXT or RICH_TEXT
  *  - content: a JSON object; this UI stores the user's input as `content.text`
  *  - visibility: PRIVATE, PUBLIC, or DM_ONLY
+ *
+ * For TEXT blocks an "@" button lets the user tag another node in the campaign.
  */
+
+import { useState, useRef } from "react";
+import { NodeTagInsert } from "../../components/blocks/NodeTagInsert";
+import type { BlockType, Visibility } from "../../types";
 
 interface Props {
   onAdd: (data: { type: BlockType; content: Record<string, unknown>; visibility: Visibility }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
+  /** Campaign id used to scope the tag search. */
+  campaignId: string;
+  /** Node that owns the block (excluded from tag search). */
+  nodeId: string;
 }
 
 /**
@@ -28,10 +33,11 @@ interface Props {
  *  - content: plain-text content stored in `{ text: content }`
  *  - visibility: who can see the block once saved
  */
-export function AddBlockModal({ onAdd, onClose, isPending }: Props) {
+export function AddBlockModal({ onAdd, onClose, isPending, campaignId, nodeId }: Props) {
   const [type, setType] = useState<BlockType>("TEXT");
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("PUBLIC");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   /** Submits the block, then resets the form to defaults and closes. */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,12 +67,25 @@ export function AddBlockModal({ onAdd, onClose, isPending }: Props) {
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
             <textarea
+              ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               required
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
+            {type === "TEXT" && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Tag a node:</span>
+                <NodeTagInsert
+                  campaignId={campaignId}
+                  currentNodeId={nodeId}
+                  textareaRef={textareaRef}
+                  content={content}
+                  onChange={setContent}
+                />
+              </div>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Visibility</label>

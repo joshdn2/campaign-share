@@ -13,7 +13,6 @@ import { ErrorMessage } from "../components/ui/ErrorMessage";
 import { useAuthStore } from "../stores/authStore";
 import { CampaignInfoSection } from "./campaign-detail/CampaignInfoSection";
 import { MembersSection } from "./campaign-detail/MembersSection";
-import { ArcsSection } from "./campaign-detail/ArcsSection";
 import { NodeTypeGrid } from "./campaign-detail/NodeTypeGrid";
 import { FilteredNodeList } from "./campaign-detail/FilteredNodeList";
 import { AddMemberModal } from "./campaign-detail/AddMemberModal";
@@ -30,7 +29,7 @@ import type { NodeType } from "../types";
  *
  * Responsibilities:
  *  - Fetch the campaign record and all its nodes.
- *  - Render the campaign info, member list, arcs, and node grids.
+ *  - Render the campaign info, member list, sessions, and node grids.
  *  - Support a filtered list view via the `?type=<NodeType>` query parameter,
  *    which is triggered when a node type is selected in the sidebar.
  *  - Manage modals for adding members and creating new nodes.
@@ -40,7 +39,6 @@ import type { NodeType } from "../types";
 
 // Human-readable labels for each NodeType enum value.
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
-  ARC: "Arc",
   SESSION: "Session",
   CHARACTER: "Character",
   CREATURE: "Creature",
@@ -52,6 +50,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
 
 // Node types rendered as card grids on the main campaign detail page.
 const GRID_TYPES: NodeType[] = [
+  "SESSION",
   "CHARACTER",
   "LOCATION",
   "ITEM",
@@ -64,8 +63,8 @@ const GRID_TYPES: NodeType[] = [
  * CampaignDetailPage – main view for a single campaign.
  *
  * Reads the `campaignId` route param and the `?type=<NodeType>` query param.
- * Shows info, members, arcs, and node grids. When `?type` is present, the page
- * switches to a dedicated list view for that node type instead of the full
+ * Shows info, members, sessions, and node grids. When `?type` is present, the
+ * page switches to a dedicated list view for that node type instead of the full
  * campaign dashboard.
  */
 export function CampaignDetailPage() {
@@ -133,9 +132,7 @@ export function CampaignDetailPage() {
     return params.get("create") === "1" && type ? type : null;
   });
 
-  // When creating a child node (e.g. a Session under an Arc), this stores the
-  // parent id so the new node can be linked automatically.
-  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
+
 
   // --------------------------------------------------------------------------
   // Effects
@@ -194,9 +191,7 @@ export function CampaignDetailPage() {
     ? nodes?.filter((n) => n.type === filterType)
     : null;
 
-  // Pull arcs and sessions out of the grouped nodes for the ArcsSection.
-  const arcs = nodesByType?.ARC || [];
-  const sessions = nodesByType?.SESSION || [];
+
 
   // --------------------------------------------------------------------------
   // Event handlers
@@ -212,13 +207,11 @@ export function CampaignDetailPage() {
       type: createNodeType,
       title: data.title,
       excerpt: data.excerpt,
-      parentId: pendingParentId || undefined,
     });
 
     // Close the modal and reset transient creation state.
     setShowCreateNode(false);
     setCreateNodeType(null);
-    setPendingParentId(null);
 
     // Redirect into the new node's detail view.
     navigate(`/campaigns/${campaignId}/nodes/${node.id}`);
@@ -227,16 +220,6 @@ export function CampaignDetailPage() {
   /** Opens the create-node modal for the selected node type. */
   const openCreateModal = (type: NodeType) => {
     setCreateNodeType(type);
-    setShowCreateNode(true);
-  };
-
-  /**
-   * Pre-configures the create-node modal to add a Session child under the
-   * specified arc. Sets both the node type and the pending parent id.
-   */
-  const openAddSession = (arcId: string) => {
-    setCreateNodeType("SESSION");
-    setPendingParentId(arcId);
     setShowCreateNode(true);
   };
 
@@ -282,13 +265,6 @@ export function CampaignDetailPage() {
             onRemoveMember={(userId) => removeMember.mutate(userId)}
           />
 
-          <ArcsSection
-            campaignId={campaignId!}
-            arcs={arcs}
-            sessions={sessions}
-            onAddSession={openAddSession}
-          />
-
           {GRID_TYPES.map((type) => (
             <NodeTypeGrid
               key={type}
@@ -319,7 +295,6 @@ export function CampaignDetailPage() {
           onClose={() => {
             setShowCreateNode(false);
             setCreateNodeType(null);
-            setPendingParentId(null);
           }}
           isPending={createNode.isPending}
         />

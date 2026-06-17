@@ -83,7 +83,6 @@ model Node {
   outgoingLinks NodeLink[] @relation("LinkSource")
   incomingLinks NodeLink[] @relation("LinkTarget")
 
-  arcDetail       ArcDetail?
   sessionDetail   SessionDetail?
   characterDetail CharacterDetail?
   creatureDetail  CreatureDetail?
@@ -97,7 +96,6 @@ model Node {
 }
 
 enum NodeType {
-  ARC
   SESSION
   CHARACTER
   CREATURE
@@ -171,15 +169,6 @@ model NodeTag {
 }
 
 // ─── Type-Specific Detail Tables ──────────────────────────────
-
-model ArcDetail {
-  id          String  @id @default(uuid())
-  nodeId      String  @unique
-  arcNumber   Int
-  description String?
-
-  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-}
 
 model SessionDetail {
   id             String    @id @default(uuid())

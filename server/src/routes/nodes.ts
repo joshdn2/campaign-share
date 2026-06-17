@@ -3,7 +3,7 @@
  *
  * Router for campaign nodes.
  *
- * Nodes are the primary content units in a campaign: arcs, sessions,
+ * Nodes are the primary content units in a campaign: sessions,
  * characters, creatures, items, locations, notes, and factions. Each node type
  * has a corresponding detail table. This module handles listing, creating,
  * reading, updating, and deleting nodes, including their type-specific detail
@@ -12,6 +12,7 @@
  */
 
 import { Router } from "express";
+import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth } from "../middleware/auth";
 import { createNodeSchema, updateNodeSchema } from "../lib/validation";
@@ -43,6 +44,68 @@ function buildNodeVisibilityFilter(campaignDmId: string | null, userId: string) 
 }
 
 /**
+ * Validate a campaign id when it is provided as a query parameter.
+ *
+ * Returns the validated UUID or undefined. Any non-UUID value is rejected so
+ * it cannot be injected into raw SQL.
+ *
+ * @param value - Raw campaign id from the query string.
+ * @returns The validated id, or undefined if omitted/empty.
+ */
+function validateOptionalCampaignId(value: unknown): string | undefined {
+  if (!value || typeof value !== "string") return undefined;
+  const parsed = z.string().uuid().safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/**
+ * Shared CTE that returns the campaigns a user is allowed to see.
+ *
+ * A campaign is searchable when the caller is the DM or a member. This CTE
+ * is reused by both the suggestions and full-search queries.
+ */
+const MEMBER_CAMPAIGNS_CTE = `
+  member_campaigns AS (
+    SELECT c.id AS campaign_id, c."dmId" AS dm_id
+    FROM "Campaign" c
+    LEFT JOIN "CampaignMember" cm ON cm."campaignId" = c.id AND cm."userId" = $1
+    WHERE c."dmId" = $1 OR cm."userId" IS NOT NULL
+  )
+`;
+
+/**
+ * Shared CTE that returns nodes the user can see within their member campaigns,
+ * optionally scoped to a single campaign. Visibility rules mirror the rest of
+ * the app: public nodes, the user's own private nodes, and DM-only nodes for
+ * the campaign DM.
+ */
+const VISIBLE_NODES_CTE = `
+  visible_nodes AS (
+    SELECT
+      n.id, n.title, n.excerpt, n.type, n."campaignId" AS campaign_id,
+      n."ownerId" AS owner_id, n.visibility, n."updatedAt" AS updated_at, mc.dm_id
+    FROM "Node" n
+    JOIN member_campaigns mc ON n."campaignId" = mc.campaign_id
+    WHERE ($2::text IS NULL OR n."campaignId" = $2)
+      AND (
+        n.visibility = 'PUBLIC'
+        OR (n.visibility = 'PRIVATE' AND n."ownerId" = $1)
+        OR (n.visibility = 'DM_ONLY' AND mc.dm_id = $1)
+      )
+  )
+`;
+
+/**
+ * Score constants used to rank search results.
+ *
+ * Title matches are weighted highest, followed by excerpt matches, then block
+ * content matches. A node can accumulate points from multiple fields.
+ */
+const TITLE_SCORE = 3;
+const EXCERPT_SCORE = 2;
+const BLOCK_SCORE = 1;
+
+/**
  * Return the Prisma include fragment for a node's type-specific detail record.
  *
  * Because detail tables differ per node type, this helper maps the node type
@@ -54,8 +117,6 @@ function buildNodeVisibilityFilter(campaignDmId: string | null, userId: string) 
  */
 function detailInclude(type: string) {
   switch (type) {
-    case "ARC":
-      return { arcDetail: true };
     case "SESSION":
       return { sessionDetail: true };
     case "CHARACTER":
@@ -87,14 +148,6 @@ function detailInclude(type: string) {
  */
 async function createDetail(tx: any, nodeId: string, type: string, details: Record<string, unknown>) {
   switch (type) {
-    case "ARC":
-      return tx.arcDetail.create({
-        data: {
-          nodeId,
-          arcNumber: Number(details.arcNumber) || 1,
-          description: (details.description as string) || null,
-        },
-      });
     case "SESSION":
       return tx.sessionDetail.create({
         data: {
@@ -197,19 +250,6 @@ async function createDetail(tx: any, nodeId: string, type: string, details: Reco
  */
 async function updateDetail(tx: any, nodeId: string, type: string, details: Record<string, unknown>) {
   switch (type) {
-    case "ARC":
-      return tx.arcDetail.upsert({
-        where: { nodeId },
-        create: {
-          nodeId,
-          arcNumber: Number(details.arcNumber) || 1,
-          description: (details.description as string) || null,
-        },
-        update: {
-          arcNumber: details.arcNumber != null ? Number(details.arcNumber) : undefined,
-          description: details.description as string | undefined,
-        },
-      });
     case "SESSION":
       return tx.sessionDetail.upsert({
         where: { nodeId },
@@ -400,14 +440,206 @@ router.get("/campaign/:campaignId", async (req, res) => {
     include: {
       owner: { select: { id: true, displayName: true } },
       tags: true,
-      // Spread the detail include for the ARC case as a representative example;
+      // Spread the detail include for the SESSION case as a representative example;
       // the API currently returns all detail relations through other endpoints.
-      ...detailInclude("ARC"),
+      ...detailInclude("SESSION"),
     },
     orderBy: [{ type: "asc" }, { title: "asc" }],
   });
 
   res.json(nodes);
+});
+
+/**
+ * GET /api/nodes/search/suggestions
+ *
+ * Fast title-only suggestions for the navbar dropdown and the block tagger.
+ * Returns nodes whose title contains the search term, scoped to the current
+ * campaign when one is provided. Only campaigns the user belongs to are
+ * considered, and node visibility rules are applied.
+ *
+ * Query params:
+ *  - q: search term
+ *  - campaignId: optional campaign scope
+ *  - excludeNodeId: optional node id to exclude (used when tagging so the
+ *    current node cannot tag itself)
+ *  - limit: max suggestions (default 8, max 50)
+ */
+router.get("/search/suggestions", async (req, res) => {
+  const userId = req.user!.userId;
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const campaignId = validateOptionalCampaignId(req.query.campaignId);
+  const excludeNodeId = validateOptionalCampaignId(req.query.excludeNodeId);
+  const limit = Math.min(Math.max(Number(req.query.limit) || 8, 1), 50);
+
+  if (!q) {
+    res.status(400).json({ error: "Search term is required" });
+    return;
+  }
+
+  const termPattern = `%${q}%`;
+
+  const suggestions = await prisma.$queryRawUnsafe<
+    Array<{
+      id: string;
+      title: string;
+      type: string;
+      campaignId: string;
+      campaignName: string;
+    }>
+  >(
+    `
+    WITH
+      ${MEMBER_CAMPAIGNS_CTE},
+      ${VISIBLE_NODES_CTE}
+    SELECT
+      n.id,
+      n.title,
+      n.type,
+      n."campaignId" AS "campaignId",
+      c.name AS "campaignName"
+    FROM visible_nodes vn
+    JOIN "Node" n ON n.id = vn.id
+    JOIN "Campaign" c ON c.id = n."campaignId"
+    WHERE n."title" ILIKE $3
+      AND ($5::text IS NULL OR n.id != $5)
+    ORDER BY n."title" ASC
+    LIMIT $4
+    `,
+    userId,
+    campaignId ?? null,
+    termPattern,
+    limit,
+    excludeNodeId ?? null,
+  );
+
+  res.json({ suggestions });
+});
+
+/**
+ * GET /api/nodes/search
+ *
+ * Full-text search across node titles, excerpts, and visible TEXT blocks.
+ * Results are ranked by relevance (title > excerpt > block) and paginated.
+ * The search is automatically scoped to campaigns the user is a member of,
+ * with an optional campaignId filter for campaign-scoped search.
+ */
+router.get("/search", async (req, res) => {
+  const userId = req.user!.userId;
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const campaignId = validateOptionalCampaignId(req.query.campaignId);
+  const page = Math.min(Math.max(Number(req.query.page) || 1, 1), 10_000);
+  const requestedLimit = Number(req.query.limit) || 20;
+  const limit = Math.min(Math.max(requestedLimit, 1), 100);
+  const offset = (page - 1) * limit;
+
+  if (!q) {
+    res.status(400).json({ error: "Search term is required" });
+    return;
+  }
+
+  const termPattern = `%${q}%`;
+
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{
+      id: string;
+      title: string;
+      excerpt: string | null;
+      type: string;
+      campaignId: string;
+      campaignName: string;
+      ownerId: string;
+      visibility: string;
+      updatedAt: Date;
+      score: number;
+      matchedFields: string[];
+      total: number;
+    }>
+  >(
+    `
+    WITH
+      ${MEMBER_CAMPAIGNS_CTE},
+      ${VISIBLE_NODES_CTE},
+      title_matches AS (
+        SELECT vn.*, ${TITLE_SCORE} AS score, 'title'::text AS matched_field
+        FROM visible_nodes vn
+        WHERE vn.title ILIKE $3
+      ),
+      excerpt_matches AS (
+        SELECT vn.*, ${EXCERPT_SCORE} AS score, 'excerpt'::text AS matched_field
+        FROM visible_nodes vn
+        WHERE vn.excerpt ILIKE $3
+      ),
+      block_matches AS (
+        SELECT DISTINCT
+          vn.id, vn.title, vn.excerpt, vn.type, vn.campaign_id,
+          vn.owner_id, vn.visibility, vn.updated_at, vn.dm_id,
+          ${BLOCK_SCORE} AS score, 'block'::text AS matched_field
+        FROM visible_nodes vn
+        JOIN "NodeBlock" nb ON nb."nodeId" = vn.id
+        WHERE nb.type = 'TEXT'
+          AND nb.content->>'text' ILIKE $3
+          AND (
+            nb.visibility = 'PUBLIC'
+            OR (nb.visibility = 'PRIVATE' AND nb."authorId" = $1)
+            OR (nb.visibility = 'DM_ONLY' AND vn.dm_id = $1)
+          )
+      ),
+      all_matches AS (
+        SELECT * FROM title_matches
+        UNION ALL
+        SELECT * FROM excerpt_matches
+        UNION ALL
+        SELECT * FROM block_matches
+      ),
+      ranked AS (
+        SELECT
+          id,
+          SUM(score) AS score,
+          ARRAY_AGG(DISTINCT matched_field) AS matched_fields
+        FROM all_matches
+        GROUP BY id
+      )
+    SELECT
+      n.id,
+      n.title,
+      n.excerpt,
+      n.type,
+      n."campaignId" AS "campaignId",
+      c.name AS "campaignName",
+      n."ownerId" AS "ownerId",
+      n.visibility,
+      n."updatedAt" AS "updatedAt",
+      r.score,
+      r.matched_fields AS "matchedFields",
+      COUNT(*) OVER() AS total
+    FROM ranked r
+    JOIN "Node" n ON n.id = r.id
+    JOIN "Campaign" c ON c.id = n."campaignId"
+    ORDER BY r.score DESC, n."updatedAt" DESC
+    LIMIT $4 OFFSET $5
+    `,
+    userId,
+    campaignId ?? null,
+    termPattern,
+    limit,
+    offset,
+  );
+
+  const total = rows.length > 0 ? Number(rows[0].total) : 0;
+  const results = rows.map(({ total: _, score, updatedAt, ...rest }) => ({
+    ...rest,
+    score: Number(score),
+    updatedAt: updatedAt.toISOString(),
+  }));
+
+  res.json({
+    results,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 });
 
 /**
@@ -550,7 +782,6 @@ router.get("/:id", async (req, res) => {
       parent: { select: { id: true, title: true, type: true } },
       children: { select: { id: true, title: true, type: true } },
       tags: true,
-      arcDetail: true,
       sessionDetail: true,
       characterDetail: true,
       creatureDetail: true,
@@ -677,7 +908,6 @@ router.patch("/:id", async (req, res) => {
         parent: { select: { id: true, title: true, type: true } },
         children: { select: { id: true, title: true, type: true } },
         tags: true,
-        arcDetail: true,
         sessionDetail: true,
         characterDetail: true,
         creatureDetail: true,

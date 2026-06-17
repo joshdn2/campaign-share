@@ -16,7 +16,6 @@ export interface AuthState {
 export type CampaignRole = "PLAYER" | "LOREMASTER";
 export type Visibility = "PRIVATE" | "PUBLIC" | "DM_ONLY";
 export type NodeType =
-  | "ARC"
   | "SESSION"
   | "CHARACTER"
   | "CREATURE"
@@ -76,13 +75,6 @@ export interface NodeLink {
   createdAt: string;
   target?: { id: string; title: string; type: NodeType };
   source?: { id: string; title: string; type: NodeType };
-}
-
-export interface ArcDetail {
-  id: string;
-  nodeId: string;
-  arcNumber: number;
-  description: string | null;
 }
 
 export interface SessionDetail {
@@ -181,7 +173,6 @@ export interface Node {
   ancestors?: { id: string; title: string; type: NodeType }[];
   children?: { id: string; title: string; type: NodeType }[];
   tags: NodeTag[];
-  arcDetail?: ArcDetail | null;
   sessionDetail?: SessionDetail | null;
   characterDetail?: CharacterDetail | null;
   creatureDetail?: CreatureDetail | null;
@@ -207,4 +198,36 @@ export interface NodeBlock {
   createdAt: string;
   updatedAt: string;
   author: { id: string; displayName: string };
+}
+
+// ─── Search ───────────────────────────────────────────
+
+export interface SearchSuggestion {
+  id: string;
+  title: string;
+  type: NodeType;
+  campaignId: string;
+  campaignName: string;
+}
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  excerpt: string | null;
+  type: NodeType;
+  campaignId: string;
+  campaignName: string;
+  ownerId: string;
+  visibility: Visibility;
+  updatedAt: string;
+  score: number;
+  matchedFields: string[];
+}
+
+export interface SearchResultsResponse {
+  results: SearchResult[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

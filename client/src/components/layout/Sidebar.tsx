@@ -31,7 +31,6 @@ interface SidebarProps {
 
 // Human-readable labels for each node type, used in the campaign nav.
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
-  ARC: "Arcs",
   SESSION: "Sessions",
   CHARACTER: "Characters",
   CREATURE: "Creatures",
@@ -43,7 +42,6 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
 
 // Order in which node type filters are rendered.
 const NODE_TYPE_ORDER: NodeType[] = [
-  "ARC",
   "SESSION",
   "CHARACTER",
   "CREATURE",

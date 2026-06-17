@@ -15,6 +15,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { CampaignsListPage } from "./pages/CampaignsListPage";
 import { CampaignDetailPage } from "./pages/CampaignDetailPage";
 import { NodeDetailPage } from "./pages/NodeDetailPage";
+import { SearchResultsPage } from "./pages/SearchResultsPage";
 
 /**
  * Renders the application's route tree.
@@ -49,7 +50,9 @@ export default function App() {
         <Route index element={<Navigate to="/campaigns" replace />} />
         <Route path="campaigns" element={<CampaignsListPage />} />
         <Route path="campaigns/:campaignId" element={<CampaignDetailPage />} />
+        <Route path="campaigns/:campaignId/search" element={<SearchResultsPage />} />
         <Route path="campaigns/:campaignId/nodes/:nodeId" element={<NodeDetailPage />} />
+        <Route path="search" element={<SearchResultsPage />} />
       </Route>
     </Routes>
   );

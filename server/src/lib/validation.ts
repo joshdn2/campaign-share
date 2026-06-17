@@ -87,7 +87,6 @@ export const updateMemberSchema = z.object({
  * session, character, item, or faction.
  */
 export const nodeTypeSchema = z.enum([
-  "ARC",
   "SESSION",
   "CHARACTER",
   "CREATURE",
