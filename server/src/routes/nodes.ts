@@ -15,7 +15,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth } from "../middleware/auth";
-import { createNodeSchema, updateNodeSchema } from "../lib/validation";
+import { createNodeSchema, updateNodeSchema, createNodeLinkSchema } from "../lib/validation";
+import { Prisma } from "@prisma/client";
 
 const router = Router();
 
@@ -157,6 +158,14 @@ async function createDetail(tx: any, nodeId: string, type: string, details: Reco
           shortSummary: (details.shortSummary as string) || null,
           longSummary: (details.longSummary as string) || null,
           campaignId: (details.campaignId as string) || null,
+          startDateAgeId: (details.startDateAgeId as string) || null,
+          startDateYear: details.startDateYear != null ? Number(details.startDateYear) : null,
+          startDateMonthId: (details.startDateMonthId as string) || null,
+          startDateDay: details.startDateDay != null ? Number(details.startDateDay) : null,
+          endDateAgeId: (details.endDateAgeId as string) || null,
+          endDateYear: details.endDateYear != null ? Number(details.endDateYear) : null,
+          endDateMonthId: (details.endDateMonthId as string) || null,
+          endDateDay: details.endDateDay != null ? Number(details.endDateDay) : null,
         },
       });
     case "CHARACTER":
@@ -260,12 +269,28 @@ async function updateDetail(tx: any, nodeId: string, type: string, details: Reco
           shortSummary: (details.shortSummary as string) || null,
           longSummary: (details.longSummary as string) || null,
           campaignId: (details.campaignId as string) || null,
+          startDateAgeId: (details.startDateAgeId as string) || null,
+          startDateYear: details.startDateYear != null ? Number(details.startDateYear) : null,
+          startDateMonthId: (details.startDateMonthId as string) || null,
+          startDateDay: details.startDateDay != null ? Number(details.startDateDay) : null,
+          endDateAgeId: (details.endDateAgeId as string) || null,
+          endDateYear: details.endDateYear != null ? Number(details.endDateYear) : null,
+          endDateMonthId: (details.endDateMonthId as string) || null,
+          endDateDay: details.endDateDay != null ? Number(details.endDateDay) : null,
         },
         update: {
           sessionNumber: details.sessionNumber != null ? Number(details.sessionNumber) : undefined,
           sessionDate: details.sessionDate ? new Date(details.sessionDate as string) : undefined,
           shortSummary: details.shortSummary as string | undefined,
           longSummary: details.longSummary as string | undefined,
+          startDateAgeId: details.startDateAgeId as string | undefined,
+          startDateYear: details.startDateYear != null ? Number(details.startDateYear) : undefined,
+          startDateMonthId: details.startDateMonthId as string | undefined,
+          startDateDay: details.startDateDay != null ? Number(details.startDateDay) : undefined,
+          endDateAgeId: details.endDateAgeId as string | undefined,
+          endDateYear: details.endDateYear != null ? Number(details.endDateYear) : undefined,
+          endDateMonthId: details.endDateMonthId as string | undefined,
+          endDateDay: details.endDateDay != null ? Number(details.endDateDay) : undefined,
         },
       });
     case "CHARACTER":
@@ -762,6 +787,159 @@ async function getAncestors(nodeId: string) {
 }
 
 /**
+ * POST /api/nodes/:id/links
+ *
+ * Create a bidirectional manual link between the source node (`:id`) and the
+ * target node supplied in the body.
+ *
+ * The caller must be able to see both nodes and must belong to their campaign.
+ * The link is stored in both directions so the relationship appears on each
+ * node's detail page. A unique constraint violation returns 409.
+ */
+router.post("/:id/links", async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user!.userId;
+
+  const parse = createNodeLinkSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.flatten() });
+    return;
+  }
+
+  const { targetId, label } = parse.data;
+
+  if (id === targetId) {
+    res.status(400).json({ error: "A node cannot be linked to itself" });
+    return;
+  }
+
+  const [sourceNode, targetNode] = await Promise.all([
+    prisma.node.findUnique({
+      where: { id },
+      include: { campaign: { select: { id: true, dmId: true } } },
+    }),
+    prisma.node.findUnique({
+      where: { id: targetId },
+      include: { campaign: { select: { id: true, dmId: true } } },
+    }),
+  ]);
+
+  if (!sourceNode || !targetNode) {
+    res.status(404).json({ error: "Node not found" });
+    return;
+  }
+
+  // Both nodes must live in the same campaign.
+  if (!sourceNode.campaignId || sourceNode.campaignId !== targetNode.campaignId) {
+    res.status(400).json({ error: "Nodes must belong to the same campaign" });
+    return;
+  }
+
+  const campaignId = sourceNode.campaignId;
+  const isDm = sourceNode.campaign?.dmId === userId;
+
+  // Caller must be a campaign member (DM or accepted member).
+  const isMember =
+    isDm ||
+    (await prisma.campaignMember.findFirst({
+      where: { campaignId, userId },
+    }));
+  if (!isMember) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  // Both nodes must be visible to the caller.
+  const canSee = (node: typeof sourceNode) =>
+    node.visibility === "PUBLIC" ||
+    (node.visibility === "PRIVATE" && node.ownerId === userId) ||
+    (node.visibility === "DM_ONLY" && node.campaign?.dmId === userId);
+
+  if (!canSee(sourceNode) || !canSee(targetNode)) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  // Check for an existing link in either direction; the relationship is
+  // undirected, so A-B is the same link as B-A.
+  const existing = await prisma.nodeLink.findFirst({
+    where: {
+      OR: [
+        { sourceId: id, targetId },
+        { sourceId: targetId, targetId: id },
+      ],
+    },
+  });
+  if (existing) {
+    res.status(409).json({ error: "Link already exists" });
+    return;
+  }
+
+  try {
+    await prisma.nodeLink.create({
+      data: {
+        sourceId: id,
+        targetId,
+        label: label || null,
+        createdBy: userId,
+      },
+    });
+
+    res.status(201).json({ message: "Link created" });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      res.status(409).json({ error: "Link already exists" });
+      return;
+    }
+    console.error("Create link error:", err);
+    res.status(500).json({ error: "Failed to create link" });
+  }
+});
+
+/**
+ * DELETE /api/nodes/:id/links/:linkId
+ *
+ * Delete a manual link between two nodes. The caller must be the DM, the owner
+ * of either linked node, or the user who created the link.
+ */
+router.delete("/:id/links/:linkId", async (req, res) => {
+  const { id, linkId } = req.params;
+  const userId = req.user!.userId;
+
+  const link = await prisma.nodeLink.findUnique({
+    where: { id: linkId },
+    include: {
+      source: { include: { campaign: { select: { dmId: true } } } },
+      target: { include: { campaign: { select: { dmId: true } } } },
+    },
+  });
+
+  if (!link) {
+    res.status(404).json({ error: "Link not found" });
+    return;
+  }
+
+  // Verify the link involves the requested node.
+  if (link.sourceId !== id && link.targetId !== id) {
+    res.status(400).json({ error: "Link does not belong to this node" });
+    return;
+  }
+
+  const isDm =
+    link.source.campaign?.dmId === userId || link.target.campaign?.dmId === userId;
+  const isOwner = link.source.ownerId === userId || link.target.ownerId === userId;
+  const isCreator = link.createdBy === userId;
+
+  if (!isDm && !isOwner && !isCreator) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  await prisma.nodeLink.delete({ where: { id: linkId } });
+  res.json({ message: "Link deleted" });
+});
+
+/**
  * GET /api/nodes/:id
  *
  * Get a single node with all of its detail relations, hierarchy, tags, links,
@@ -788,16 +966,6 @@ router.get("/:id", async (req, res) => {
       itemDetail: true,
       locationDetail: true,
       factionDetail: true,
-      outgoingLinks: {
-        include: {
-          target: { select: { id: true, title: true, type: true } },
-        },
-      },
-      incomingLinks: {
-        include: {
-          source: { select: { id: true, title: true, type: true } },
-        },
-      },
     },
   });
 
@@ -838,7 +1006,28 @@ router.get("/:id", async (req, res) => {
     orderBy: { ordering: "asc" },
   });
 
-  res.json({ ...node, ancestors, blocks });
+  // Links are undirected; filter out any linked node the caller cannot see.
+  const linkedNodeVisibilityFilter = buildNodeVisibilityFilter(
+    node.campaign?.dmId ?? null,
+    userId,
+  );
+
+  const [outgoingLinks, incomingLinks] = await Promise.all([
+    prisma.nodeLink.findMany({
+      where: { sourceId: id, target: linkedNodeVisibilityFilter },
+      include: {
+        target: { select: { id: true, title: true, type: true } },
+      },
+    }),
+    prisma.nodeLink.findMany({
+      where: { targetId: id, source: linkedNodeVisibilityFilter },
+      include: {
+        source: { select: { id: true, title: true, type: true } },
+      },
+    }),
+  ]);
+
+  res.json({ ...node, outgoingLinks, incomingLinks, ancestors, blocks });
 });
 
 /**
@@ -914,16 +1103,6 @@ router.patch("/:id", async (req, res) => {
         itemDetail: true,
         locationDetail: true,
         factionDetail: true,
-        outgoingLinks: {
-          include: {
-            target: { select: { id: true, title: true, type: true } },
-          },
-        },
-        incomingLinks: {
-          include: {
-            source: { select: { id: true, title: true, type: true } },
-          },
-        },
       },
     });
 
@@ -946,7 +1125,28 @@ router.patch("/:id", async (req, res) => {
       orderBy: { ordering: "asc" },
     });
 
-    res.json({ ...fullNode!, ancestors, blocks });
+    // Links are undirected; filter out any linked node the caller cannot see.
+    const linkedNodeVisibilityFilter = buildNodeVisibilityFilter(
+      fullNode!.campaign?.dmId ?? null,
+      userId,
+    );
+
+    const [outgoingLinks, incomingLinks] = await Promise.all([
+      prisma.nodeLink.findMany({
+        where: { sourceId: id, target: linkedNodeVisibilityFilter },
+        include: {
+          target: { select: { id: true, title: true, type: true } },
+        },
+      }),
+      prisma.nodeLink.findMany({
+        where: { targetId: id, source: linkedNodeVisibilityFilter },
+        include: {
+          source: { select: { id: true, title: true, type: true } },
+        },
+      }),
+    ]);
+
+    res.json({ ...fullNode!, outgoingLinks, incomingLinks, ancestors, blocks });
   } catch (err) {
     console.error("Update node error:", err);
     res.status(500).json({ error: "Failed to update node" });

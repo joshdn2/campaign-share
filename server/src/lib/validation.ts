@@ -139,6 +139,17 @@ export const updateNodeSchema = z.object({
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
+/**
+ * Validates a request to create a manual link between two nodes.
+ *
+ * - targetId: required UUID of the node to link to.
+ * - label: optional short descriptor, max 30 characters.
+ */
+export const createNodeLinkSchema = z.object({
+  targetId: z.string().uuid(),
+  label: z.string().max(30).optional(),
+});
+
 // ─── Blocks ───────────────────────────────────────────
 
 /**
@@ -202,6 +213,72 @@ export type AddMemberInput = z.infer<typeof addMemberSchema>;
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
 export type CreateNodeInput = z.infer<typeof createNodeSchema>;
 export type UpdateNodeInput = z.infer<typeof updateNodeSchema>;
+export type CreateNodeLinkInput = z.infer<typeof createNodeLinkSchema>;
+
+// ─── Calendars ──────────────────────────────────────────────────
+
+/**
+ * Validates a custom campaign calendar definition.
+ *
+ * - name: calendar display name.
+ * - daysInWeek: number of days in a week (>= 1).
+ * - weekdayNames: ordered list of weekday names, length must equal daysInWeek.
+ * - anchorAgeId / anchorMonthId / anchorDay: a date known to be a specific weekday.
+ * - anchorWeekdayIndex: index into weekdayNames for the anchor date.
+ * - ages: ordered list of calendar ages/epochs.
+ * - months: ordered list of months.
+ * - moons: optional list of lunar cycles.
+ */
+export const campaignCalendarSchema = z.object({
+  name: z.string().min(1).max(100),
+  daysInWeek: z.number().int().min(1).max(31),
+  weekdayNames: z.array(z.string().min(1).max(30)).min(1),
+  anchorAgeId: z.string().optional().nullable(),
+  anchorMonthId: z.string().optional().nullable(),
+  anchorDay: z.number().int().min(1).optional().nullable(),
+  anchorWeekdayIndex: z.number().int().min(0),
+  ages: z.array(
+    z.object({
+      id: z.string().uuid().optional(),
+      name: z.string().min(1).max(100),
+      startYear: z.number().int().min(0).default(0),
+      endYear: z.number().int().min(0).optional().nullable(),
+      order: z.number().int().min(0).default(0),
+    })
+  ),
+  months: z.array(
+    z.object({
+      id: z.string().uuid().optional(),
+      name: z.string().min(1).max(100),
+      days: z.number().int().min(1).max(1000),
+      order: z.number().int().min(0).default(0),
+    })
+  ),
+  moons: z.array(
+    z.object({
+      id: z.string().uuid().optional(),
+      name: z.string().min(1).max(100),
+      cycleLength: z.number().int().min(1).max(1000),
+      anchorAgeId: z.string().uuid().optional(),
+      anchorMonthId: z.string().uuid().optional(),
+      anchorDay: z.number().int().min(1).optional(),
+      order: z.number().int().min(0).default(0),
+    })
+  ).default([]),
+});
+
+/**
+ * Validates a single custom calendar date (age + year + month + day).
+ */
+export const calendarDateSchema = z.object({
+  ageId: z.string().uuid(),
+  year: z.number().int().min(0),
+  monthId: z.string().uuid(),
+  day: z.number().int().min(1),
+});
+
+export type CampaignCalendarInput = z.infer<typeof campaignCalendarSchema>;
+export type CalendarDateInput = z.infer<typeof calendarDateSchema>;
 export type CreateBlockInput = z.infer<typeof createBlockSchema>;
 export type UpdateBlockInput = z.infer<typeof updateBlockSchema>;
 export type ReorderBlocksInput = z.infer<typeof reorderBlocksSchema>;

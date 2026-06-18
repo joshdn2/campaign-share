@@ -38,6 +38,7 @@ model Campaign {
   members  CampaignMember[]
   nodes    Node[]
   sessions SessionDetail[]
+  calendar CampaignCalendar?
 }
 
 model CampaignMember {
@@ -180,6 +181,16 @@ model SessionDetail {
   consolidatedAt DateTime?
   campaignId     String?
 
+  // Custom campaign-calendar dates for the session.
+  startDateAgeId   String?
+  startDateYear    Int?
+  startDateMonthId String?
+  startDateDay     Int?
+  endDateAgeId     String?
+  endDateYear      Int?
+  endDateMonthId   String?
+  endDateDay       Int?
+
   node     Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   campaign Campaign? @relation(fields: [campaignId], references: [id])
 }
@@ -259,6 +270,74 @@ model FactionDetail {
   influenceLevel String?
 
   node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+}
+
+// ─── Calendars ──────────────────────────────────────────────────
+
+model CampaignCalendar {
+  id          String   @id @default(uuid())
+  campaignId  String   @unique
+  name        String
+  daysInWeek  Int      @default(7)
+  // Ordered list of weekday names, e.g. ["Monday", "Tuesday", ...].
+  weekdayNames String[]
+  // Anchor date that is known to be a specific weekday. Nullable during
+  // initial creation while ages/months are being added.
+  anchorAgeId   String?
+  anchorMonthId String?
+  anchorDay     Int?
+  // Index into weekdayNames for the anchor date.
+  anchorWeekdayIndex Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaign Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ages     CalendarAge[]
+  months   CalendarMonth[]
+  moons    CalendarMoon[]
+
+  @@index([campaignId])
+}
+
+model CalendarAge {
+  id         String @id @default(uuid())
+  calendarId String
+  name       String
+  startYear  Int    @default(0)
+  endYear    Int?
+  order      Int    @default(0)
+
+  calendar CampaignCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId])
+}
+
+model CalendarMonth {
+  id       String @id @default(uuid())
+  calendarId String
+  name     String
+  days     Int
+  order    Int @default(0)
+
+  calendar CampaignCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId])
+}
+
+model CalendarMoon {
+  id          String @id @default(uuid())
+  calendarId  String
+  name        String
+  cycleLength Int
+  // Anchor date known to be a full moon. Nullable during initial creation.
+  anchorAgeId   String?
+  anchorMonthId String?
+  anchorDay     Int?
+  order         Int @default(0)
+
+  calendar CampaignCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([calendarId])
 }
 
 enum LocationType {

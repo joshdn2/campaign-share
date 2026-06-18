@@ -6,7 +6,9 @@
  * Both inner cards stretch to the same height.
  */
 
+import { useState } from "react";
 import type { Node, NodeBlock, NodeType } from "../../types";
+import { useCreateLink } from "../../hooks/useNodes";
 
 import { SessionDetails } from "./sections/SessionDetails";
 import { CharacterDetails } from "./sections/CharacterDetails";
@@ -15,6 +17,7 @@ import { ItemDetails } from "./sections/ItemDetails";
 import { LocationDetails } from "./sections/LocationDetails";
 import { FactionDetails } from "./sections/FactionDetails";
 import { LinksSection } from "./LinksSection";
+import { AddLinkModal } from "./AddLinkModal";
 
 /**
  * Maps each NodeType to its dedicated detail-section component.
@@ -45,6 +48,9 @@ interface Props {
  * so the shorter one stretches to match the taller one.
  */
 export function NodeDetailsAndLinks({ node, campaignId, blocks }: Props) {
+  const [showAddLink, setShowAddLink] = useState(false);
+  const createLink = useCreateLink(node.id, campaignId);
+
   const DetailComponent = DETAIL_COMPONENTS[node.type];
   const hasDetails = node.type !== "NOTE";
 
@@ -67,14 +73,35 @@ export function NodeDetailsAndLinks({ node, campaignId, blocks }: Props) {
       {/* Links card */}
       <div className={hasDetails ? "lg:col-span-1" : "lg:col-span-3"}>
         <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 md:p-6">
-          <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-white">
-            Links
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+              Links
+            </h2>
+            <button
+              onClick={() => setShowAddLink(true)}
+              className="rounded-lg bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-700"
+              aria-label="Add link"
+            >
+              +
+            </button>
+          </div>
           <div className="flex-1">
             <LinksSection node={node} campaignId={campaignId} blocks={blocks} />
           </div>
         </section>
       </div>
+
+      {showAddLink && (
+        <AddLinkModal
+          nodeId={node.id}
+          campaignId={campaignId}
+          onAdd={async (data) => {
+            await createLink.mutateAsync(data);
+          }}
+          onClose={() => setShowAddLink(false)}
+          isPending={createLink.isPending}
+        />
+      )}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import authRouter from "./routes/auth";
 import campaignsRouter from "./routes/campaigns";
 import nodesRouter from "./routes/nodes";
 import blocksRouter from "./routes/blocks";
+import calendarsRouter from "./routes/calendars";
 
 // Create the Express application instance.
 const app = express();
@@ -69,6 +70,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/campaigns", campaignsRouter);
 app.use("/api/nodes", nodesRouter);
 app.use("/api/blocks", blocksRouter);
+app.use("/api/campaigns/:campaignId/calendar", calendarsRouter);
 
 /**
  * Root endpoint.

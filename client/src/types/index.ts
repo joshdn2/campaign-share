@@ -77,6 +77,56 @@ export interface NodeLink {
   source?: { id: string; title: string; type: NodeType };
 }
 
+export interface CalendarDate {
+  ageId: string;
+  year: number;
+  monthId: string;
+  day: number;
+}
+
+export interface CalendarAge {
+  id: string;
+  calendarId: string;
+  name: string;
+  startYear: number;
+  endYear: number | null;
+  order: number;
+}
+
+export interface CalendarMonth {
+  id: string;
+  calendarId: string;
+  name: string;
+  days: number;
+  order: number;
+}
+
+export interface CalendarMoon {
+  id: string;
+  calendarId: string;
+  name: string;
+  cycleLength: number;
+  anchorAgeId: string | null;
+  anchorMonthId: string | null;
+  anchorDay: number | null;
+  order: number;
+}
+
+export interface CampaignCalendar {
+  id: string;
+  campaignId: string;
+  name: string;
+  daysInWeek: number;
+  weekdayNames: string[];
+  anchorAgeId: string | null;
+  anchorMonthId: string | null;
+  anchorDay: number | null;
+  anchorWeekdayIndex: number;
+  ages: CalendarAge[];
+  months: CalendarMonth[];
+  moons: CalendarMoon[];
+}
+
 export interface SessionDetail {
   id: string;
   nodeId: string;
@@ -86,6 +136,14 @@ export interface SessionDetail {
   longSummary: string | null;
   consolidatedAt: string | null;
   campaignId: string | null;
+  startDateAgeId: string | null;
+  startDateYear: number | null;
+  startDateMonthId: string | null;
+  startDateDay: number | null;
+  endDateAgeId: string | null;
+  endDateYear: number | null;
+  endDateMonthId: string | null;
+  endDateDay: number | null;
 }
 
 export interface CharacterDetail {

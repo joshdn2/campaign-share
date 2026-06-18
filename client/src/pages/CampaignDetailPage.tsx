@@ -17,7 +17,10 @@ import { NodeTypeGrid } from "./campaign-detail/NodeTypeGrid";
 import { FilteredNodeList } from "./campaign-detail/FilteredNodeList";
 import { AddMemberModal } from "./campaign-detail/AddMemberModal";
 import { CreateNodeModal } from "./campaign-detail/CreateNodeModal";
-import type { NodeType } from "../types";
+import { CalendarCard } from "./campaign-detail/CalendarCard";
+import { CalendarEditModal } from "./campaign-detail/CalendarEditModal";
+import { useCalendar, useSaveCalendar } from "../hooks/useCalendars";
+import type { CalendarDate, NodeType } from "../types";
 
 /**
  * ============================================================================
@@ -118,6 +121,13 @@ export function CampaignDetailPage() {
   // Controls visibility of the "Add Member" modal.
   const [showAddMember, setShowAddMember] = useState(false);
 
+  // Controls visibility of the calendar edit modal.
+  const [showCalendarEdit, setShowCalendarEdit] = useState(false);
+
+  // Calendar data and save mutation for the edit modal.
+  const { data: calendar } = useCalendar(campaignId!);
+  const saveCalendar = useSaveCalendar(campaignId!);
+
   // Controls visibility of the "Create Node" modal and the type of node to create.
   // The initial state is read from `?create=1&type=<NodeType>` so the sidebar
   // "+" buttons can deep-link directly into creation.
@@ -159,6 +169,10 @@ export function CampaignDetailPage() {
 
   // The current user is the DM when their id matches the campaign's dmId.
   const isDm = campaign?.dmId === user?.id;
+  const isLoremaster =
+    campaign?.members.some(
+      (m) => m.userId === user?.id && m.role === "LOREMASTER",
+    ) ?? false;
 
   // Show a loading spinner while either query is resolving.
   if (campaignLoading || nodesLoading) {
@@ -201,12 +215,31 @@ export function CampaignDetailPage() {
    * Creates a new node using the currently selected node type and optional
    * pending parent id, then navigates to the newly created node's detail page.
    */
-  const handleCreateNode = async (data: { title: string; excerpt: string }) => {
+  const handleCreateNode = async (data: {
+    title: string;
+    excerpt: string;
+    startDate?: CalendarDate;
+    endDate?: CalendarDate;
+  }) => {
     if (!createNodeType) return;
+
+    const details: Record<string, unknown> = {};
+    if (createNodeType === "SESSION") {
+      details.startDateAgeId = data.startDate?.ageId ?? null;
+      details.startDateYear = data.startDate?.year ?? null;
+      details.startDateMonthId = data.startDate?.monthId ?? null;
+      details.startDateDay = data.startDate?.day ?? null;
+      details.endDateAgeId = data.endDate?.ageId ?? null;
+      details.endDateYear = data.endDate?.year ?? null;
+      details.endDateMonthId = data.endDate?.monthId ?? null;
+      details.endDateDay = data.endDate?.day ?? null;
+    }
+
     const node = await createNode.mutateAsync({
       type: createNodeType,
       title: data.title,
       excerpt: data.excerpt,
+      details: Object.keys(details).length > 0 ? details : undefined,
     });
 
     // Close the modal and reset transient creation state.
@@ -252,6 +285,13 @@ export function CampaignDetailPage() {
             isUpdating={updateCampaign.isPending}
           />
 
+          <CalendarCard
+            campaignId={campaignId!}
+            isDm={isDm}
+            isLoremaster={isLoremaster}
+            onEditCalendar={() => setShowCalendarEdit(true)}
+          />
+
           <MembersSection
             campaign={campaign}
             isDm={isDm}
@@ -291,12 +331,28 @@ export function CampaignDetailPage() {
       {showCreateNode && createNodeType && (
         <CreateNodeModal
           label={NODE_TYPE_LABELS[createNodeType]}
+          type={createNodeType}
+          calendar={calendar ?? undefined}
+          nodes={nodes}
           onCreate={handleCreateNode}
           onClose={() => {
             setShowCreateNode(false);
             setCreateNodeType(null);
           }}
           isPending={createNode.isPending}
+        />
+      )}
+
+      {/* Calendar edit modal */}
+      {showCalendarEdit && (
+        <CalendarEditModal
+          calendar={calendar ?? null}
+          campaignId={campaignId!}
+          onSave={async (data) => {
+            await saveCalendar.mutateAsync(data);
+          }}
+          onClose={() => setShowCalendarEdit(false)}
+          isPending={saveCalendar.isPending}
         />
       )}
     </div>

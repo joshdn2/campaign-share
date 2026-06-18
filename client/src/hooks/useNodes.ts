@@ -133,3 +133,49 @@ export function useDeleteNode() {
     },
   });
 }
+
+/**
+ * Creates a manual bidirectional link from a source node to a target node.
+ *
+ * @param nodeId - The source node id.
+ * @param campaignId - The campaign id used to refresh related queries.
+ * @returns A mutation accepting { targetId, label? }.
+ *
+ * On success it invalidates the source node detail and the campaign node list.
+ */
+export function useCreateLink(nodeId: string, campaignId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { targetId: string; label?: string }) => {
+      const res = await api.post<{ message: string }>(`/nodes/${nodeId}/links`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [NODES_KEY, nodeId] });
+      qc.invalidateQueries({ queryKey: [NODES_KEY, "campaign", campaignId] });
+    },
+  });
+}
+
+/**
+ * Deletes a manual link between two nodes.
+ *
+ * @param nodeId - The node id whose detail view is showing the link.
+ * @param campaignId - The campaign id used to refresh related queries.
+ * @returns A mutation accepting the link id.
+ *
+ * On success it invalidates the source node detail and the campaign node list.
+ */
+export function useDeleteLink(nodeId: string, campaignId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      const res = await api.delete<{ message: string }>(`/nodes/${nodeId}/links/${linkId}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [NODES_KEY, nodeId] });
+      qc.invalidateQueries({ queryKey: [NODES_KEY, "campaign", campaignId] });
+    },
+  });
+}

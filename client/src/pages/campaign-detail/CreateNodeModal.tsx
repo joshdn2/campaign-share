@@ -1,30 +1,38 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { CalendarDatePicker } from "../../components/calendar/CalendarDatePicker";
+import { getDefaultCalendarDate } from "../../lib/calendar";
+import type { CampaignCalendar, CalendarDate, Node, NodeType } from "../../types";
 
 /**
  * ============================================================================
  * campaign-detail/CreateNodeModal.tsx
  * ============================================================================
  *
- * Modal dialog for creating a new node of any type. The caller supplies a
- * label (e.g. "Character") so the modal title reflects the current node type.
+ * Modal dialog for creating a new node. For SESSION nodes, optional start/end
+ * dates can be picked from the campaign calendar. The start date is prefilled
+ * with the end date of the most recently created session, if one exists.
  */
 
 interface Props {
   label: string;
-  onCreate: (data: { title: string; excerpt: string }) => Promise<void>;
+  type?: NodeType;
+  calendar?: CampaignCalendar;
+  nodes?: Node[];
+  onCreate: (data: {
+    title: string;
+    excerpt: string;
+    startDate?: CalendarDate;
+    endDate?: CalendarDate;
+  }) => Promise<void>;
   onClose: () => void;
   isPending: boolean;
 }
 
-/**
- * CreateNodeModal – form for creating a new node.
- *
- * State:
- *  - title: required node title
- *  - excerpt: optional short summary shown in lists and grids
- */
 export function CreateNodeModal({
   label,
+  type,
+  calendar,
+  nodes,
   onCreate,
   onClose,
   isPending,
@@ -32,13 +40,51 @@ export function CreateNodeModal({
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
 
-  /** Submits the form, creates the node, and resets local form state. */
+  const defaultStartDate = useMemo(() => {
+    if (!calendar) return null;
+
+    // Most recently created session (by node createdAt), if any.
+    const sessionNodes = (nodes ?? []).filter((n) => n.type === "SESSION");
+    const sorted = [...sessionNodes].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    for (const session of sorted) {
+      const detail = session.sessionDetail;
+      if (!detail?.endDateMonthId) continue;
+      return {
+        ageId: detail.endDateAgeId!,
+        year: detail.endDateYear!,
+        monthId: detail.endDateMonthId!,
+        day: detail.endDateDay!,
+      };
+    }
+
+    return getDefaultCalendarDate(calendar, sessionNodes);
+  }, [calendar, nodes]);
+
+  const [startDate, setStartDate] = useState<CalendarDate | null>(defaultStartDate);
+  const [endDate, setEndDate] = useState<CalendarDate | null>(defaultStartDate);
+
+  const showDates = type === "SESSION" && calendar != null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onCreate({ title, excerpt });
+    await onCreate({
+      title,
+      excerpt,
+      ...(showDates
+        ? {
+            startDate: startDate ?? undefined,
+            endDate: endDate ?? undefined,
+          }
+        : {}),
+    });
     onClose();
     setTitle("");
     setExcerpt("");
+    setStartDate(defaultStartDate);
+    setEndDate(defaultStartDate);
   };
 
   return (
@@ -71,6 +117,27 @@ export function CreateNodeModal({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
+
+          {showDates && (
+            <div className="space-y-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Dates are optional. Start date is prefilled from the most recent session.
+              </p>
+              <CalendarDatePicker
+                calendar={calendar}
+                value={startDate}
+                onChange={setStartDate}
+                label="Start Date"
+              />
+              <CalendarDatePicker
+                calendar={calendar}
+                value={endDate}
+                onChange={setEndDate}
+                label="End Date"
+              />
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <button
               type="button"
