@@ -24,7 +24,7 @@ export function TaggedText({ text, campaignId }: TaggedTextProps) {
     <Link
       key={key}
       to={`/campaigns/${campaignId}/nodes/${nodeId}`}
-      className="text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+      className="text-accent underline hover:text-accent dark:text-accent dark:hover:text-accent"
     >
       {title}
     </Link>

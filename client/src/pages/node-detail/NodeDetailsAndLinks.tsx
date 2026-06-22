@@ -59,8 +59,8 @@ export function NodeDetailsAndLinks({ node, campaignId, blocks }: Props) {
       {/* Details card */}
       {hasDetails && DetailComponent && (
         <div className="lg:col-span-2">
-          <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 md:p-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-800 dark:text-white">
+          <section className="flex h-full flex-col rounded-xl border border-transparent bg-card-bg p-4  md:p-6">
+            <h2 className="mb-3 text-lg font-semibold text-primary">
               Details
             </h2>
             <div className="flex-1">
@@ -72,14 +72,14 @@ export function NodeDetailsAndLinks({ node, campaignId, blocks }: Props) {
 
       {/* Links card */}
       <div className={hasDetails ? "lg:col-span-1" : "lg:col-span-3"}>
-        <section className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 md:p-6">
+        <section className="flex h-full flex-col rounded-xl border border-transparent bg-card-bg p-4  md:p-6">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            <h2 className="text-lg font-semibold text-primary">
               Links
             </h2>
             <button
               onClick={() => setShowAddLink(true)}
-              className="rounded-lg bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-700"
+              className="rounded-lg bg-accent px-2.5 py-1 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
               aria-label="Add link"
             >
               +

@@ -23,7 +23,7 @@ export function LocationDetails({ node }: Props) {
   const d = node.locationDetail;
 
   return (
-    <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+    <div className="grid gap-2 text-sm text-muted dark:text-secondary sm:grid-cols-2">
       {d.locationType && <p><span className="font-medium">Type:</span> {d.locationType}</p>}
       {d.region && <p><span className="font-medium">Region:</span> {d.region}</p>}
       {d.climate && <p><span className="font-medium">Climate:</span> {d.climate}</p>}

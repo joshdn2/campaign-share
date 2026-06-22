@@ -11,7 +11,7 @@
  */
 export function ErrorMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg bg-red-50 p-4 text-red-700">
+    <div className="rounded-lg bg-danger-subtle p-4 text-danger">
       <p className="font-medium">Error</p>
       <p className="text-sm">{message}</p>
     </div>

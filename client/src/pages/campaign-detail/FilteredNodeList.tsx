@@ -45,22 +45,22 @@ export function FilteredNodeList({
   );
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
+    <section className="rounded-xl border border-transparent bg-card-bg p-4 md:p-6 ">
       {/* Header with create/back actions */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+        <h2 className="text-lg font-semibold text-primary">
           {label}s
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={onCreate}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
           >
             + Create {label}
           </button>
           <button
             onClick={onClear}
-            className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface dark:bg-surface dark:text-secondary dark:hover:bg-surface"
           >
             Back
           </button>
@@ -75,19 +75,19 @@ export function FilteredNodeList({
             onClick={() =>
               navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
             }
-            className="flex w-full items-center justify-between rounded-lg border border-gray-100 p-3 text-left hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:hover:border-blue-900 dark:hover:bg-blue-900/10"
+            className="flex w-full items-center justify-between rounded-lg border border-transparent bg-item-bg p-3 text-left transition-colors hover:bg-accent-subtle"
           >
             <div>
-              <span className="font-medium text-gray-800 dark:text-white">
+              <span className="font-medium text-primary">
                 {node.title}
               </span>
               {node.excerpt && (
-                <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-0.5 line-clamp-1 text-xs text-muted dark:text-secondary">
                   {node.excerpt}
                 </p>
               )}
             </div>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-secondary dark:text-muted">
               {new Date(node.updatedAt).toLocaleDateString()}
             </span>
           </button>
@@ -95,7 +95,7 @@ export function FilteredNodeList({
 
         {/* Empty state */}
         {sorted.length === 0 && (
-          <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="py-4 text-center text-sm text-muted dark:text-secondary">
             No {label.toLowerCase()}s found.
           </p>
         )}

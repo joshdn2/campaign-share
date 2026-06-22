@@ -88,7 +88,7 @@ export function BlocksSection({
 
       {/* Empty state when the node has no blocks yet */}
       {blocks.length === 0 && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="py-4 text-center text-sm text-muted dark:text-secondary">
           No blocks yet. Add one to get started.
         </p>
       )}
@@ -137,15 +137,15 @@ function BlockCard({
   // Color-code the block card border based on visibility.
   const borderClass =
     block.visibility === "PRIVATE"
-      ? "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/10"
+      ? "border-warning-subtle bg-warning-subtle dark:border-warning-subtle dark:bg-warning-subtle/10"
       : block.visibility === "DM_ONLY"
-        ? "border-purple-200 bg-purple-50 dark:border-purple-900 dark:bg-purple-900/10"
-        : "border-gray-100 dark:border-gray-800";
+        ? "border-accent-subtle bg-accent-subtle dark:border-accent-subtle dark:bg-accent-subtle"
+        : "border-transparent";
 
   const isTextBlock = block.type === "TEXT";
 
   return (
-    <div className={`rounded-lg border p-4 ${borderClass}`}>
+    <div className={`rounded-lg border bg-item-bg p-4 ${borderClass}`}>
       {isEditing ? (
         // Inline edit form
         <div className="space-y-2">
@@ -154,11 +154,11 @@ function BlockCard({
             value={editContent}
             onChange={(e) => onContentChange(e.target.value)}
             rows={4}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
           />
           {isTextBlock && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Tag a node:</span>
+              <span className="text-xs text-muted dark:text-secondary">Tag a node:</span>
               <NodeTagInsert
                 campaignId={campaignId}
                 currentNodeId={nodeId}
@@ -171,19 +171,19 @@ function BlockCard({
           <select
             value={editVisibility}
             onChange={(e) => onVisibilityChange(e.target.value as Visibility)}
-            className="rounded-lg border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="rounded-lg border border-default px-2 py-1 text-sm dark:border-default dark:bg-surface dark:text-primary"
           >
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
             <option value="DM_ONLY">DM_ONLY</option>
           </select>
           <div className="flex gap-2">
-            <button onClick={onSave} className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
+            <button onClick={onSave} className="rounded-lg bg-accent px-3 py-1 text-sm text-text-on-accent hover:bg-accent-hover">
               Save
             </button>
             <button
               onClick={onCancel}
-              className="rounded-lg px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              className="rounded-lg px-3 py-1 text-sm text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               Cancel
             </button>
@@ -194,15 +194,15 @@ function BlockCard({
         <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{block.type}</span>
+              <span className="text-xs font-medium text-muted dark:text-secondary">{block.type}</span>
               <VisibilityBadge visibility={block.visibility} />
-              <span className="text-xs text-gray-400 dark:text-gray-500">by {block.author.displayName}</span>
+              <span className="text-xs text-secondary dark:text-muted">by {block.author.displayName}</span>
             </div>
             {canEdit && (
               <div className="flex gap-1">
                 <button
                   onClick={onStartEdit}
-                  className="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  className="rounded px-2 py-0.5 text-xs text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
                 >
                   Edit
                 </button>
@@ -210,14 +210,14 @@ function BlockCard({
                   onClick={() => {
                     if (confirm("Delete this block?")) onDelete();
                   }}
-                  className="rounded px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="rounded px-2 py-0.5 text-xs text-danger hover:bg-danger-subtle dark:hover:bg-danger-subtle"
                 >
                   Delete
                 </button>
               </div>
             )}
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="text-sm text-primary dark:text-secondary">
             {isTextBlock ? (
               <TaggedText text={(block.content.text as string) || ""} campaignId={campaignId} />
             ) : (
@@ -236,10 +236,10 @@ function BlockCard({
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const styles =
     visibility === "PUBLIC"
-      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+      ? "bg-success-subtle text-success dark:bg-success-subtle dark:text-success"
       : visibility === "PRIVATE"
-        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-        : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300";
+        ? "bg-warning-subtle text-warning dark:bg-warning-subtle dark:text-warning"
+        : "bg-accent-subtle text-accent dark:bg-accent-subtle dark:text-accent";
 
   return (
     <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${styles}`}>{visibility}</span>

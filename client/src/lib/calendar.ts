@@ -28,7 +28,9 @@ export function daysInYear(calendar: CampaignCalendar): number {
  * If the age has no endYear, it is treated as infinitely long. Callers should
  * normally only ask for the length of ages that have ended.
  */
-export function ageLengthYears(age: CampaignCalendar["ages"][number]): number | null {
+export function ageLengthYears(
+  age: CampaignCalendar["ages"][number],
+): number | null {
   if (age.endYear == null) return null;
   return age.endYear - age.startYear + 1;
 }
@@ -167,7 +169,7 @@ export function weekdayForDate(
 
   const diff = dateAbs - anchorAbs;
   const index =
-    ((calendar.anchorWeekdayIndex + diff) % calendar.daysInWeek +
+    (((calendar.anchorWeekdayIndex + diff) % calendar.daysInWeek) +
       calendar.daysInWeek) %
     calendar.daysInWeek;
 
@@ -187,7 +189,18 @@ export function formatCalendarDate(
   const month = calendar.months.find((m) => m.id === date.monthId);
   if (!age || !month) return "Unknown date";
 
-  return `${month.name} ${date.day}, Year ${date.year} ${age.name}`;
+  return `${date.day} ${month.name}, ${date.year}, ${age.name}`;
+}
+export function formatCalendarDateNoAge(
+  calendar: CampaignCalendar,
+  date: CalendarDateParts | null | undefined,
+): string {
+  if (!date) return "Unknown date";
+
+  const month = calendar.months.find((m) => m.id === date.monthId);
+  if (!month) return "Unknown date";
+
+  return `${date.day} ${month.name}, ${date.year}`;
 }
 
 /**
@@ -257,7 +270,8 @@ export function groupNodesByAbsoluteDay(
     if (!monthId) continue;
 
     const date: CalendarDateParts = {
-      ageId: field === "startDate" ? detail.startDateAgeId! : detail.endDateAgeId!,
+      ageId:
+        field === "startDate" ? detail.startDateAgeId! : detail.endDateAgeId!,
       year: field === "startDate" ? detail.startDateYear! : detail.endDateYear!,
       monthId,
       day: field === "startDate" ? detail.startDateDay! : detail.endDateDay!,

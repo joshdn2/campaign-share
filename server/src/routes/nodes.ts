@@ -24,6 +24,20 @@ const router = Router();
 router.use(requireAuth);
 
 /**
+ * Compute the next sequential session number for a campaign.
+ *
+ * Returns 1 if the campaign has no sessions yet, otherwise `max + 1`.
+ */
+async function nextSessionNumber(tx: any, campaignId: string | null | undefined) {
+  if (!campaignId) return 1;
+  const result = await tx.sessionDetail.aggregate({
+    where: { campaignId },
+    _max: { sessionNumber: true },
+  });
+  return (result._max.sessionNumber ?? 0) + 1;
+}
+
+/**
  * Build a Prisma `where` fragment that filters nodes by visibility.
  *
  * The DM bypasses all visibility checks. Other members see public nodes plus
@@ -724,9 +738,24 @@ router.post("/campaign/:campaignId", async (req, res) => {
       });
 
       // If the client supplied type-specific details, create the detail record
-      // in the same transaction.
-      if (details && Object.keys(details).length > 0) {
-        await createDetail(tx, created.id, type, details);
+      // in the same transaction. For sessions, auto-assign the next session
+      // number when the client didn't provide one.
+      const mutableDetails = details ? { ...details } : undefined;
+      if (type === "SESSION") {
+        if (!mutableDetails || Object.keys(mutableDetails).length === 0) {
+          // Nothing to persist yet, so skip creating a SessionDetail record.
+        } else {
+          if (mutableDetails.sessionNumber == null) {
+            mutableDetails.sessionNumber = await nextSessionNumber(tx, campaignId);
+          }
+          if (mutableDetails.campaignId == null) {
+            mutableDetails.campaignId = campaignId;
+          }
+        }
+      }
+
+      if (mutableDetails && Object.keys(mutableDetails).length > 0) {
+        await createDetail(tx, created.id, type, mutableDetails);
       }
 
       return created;
@@ -1080,9 +1109,22 @@ router.patch("/:id", async (req, res) => {
         },
       });
 
-      // Upsert type-specific details when provided.
+      // Upsert type-specific details when provided. For sessions that don't
+      // have a SessionDetail yet, auto-assign the next session number.
       if (details && Object.keys(details).length > 0) {
-        await updateDetail(tx, id, node.type, details);
+        const mutableDetails = { ...details };
+        if (node.type === "SESSION" && mutableDetails.sessionNumber == null) {
+          const existing = await tx.sessionDetail.findUnique({
+            where: { nodeId: id },
+          });
+          if (!existing) {
+            mutableDetails.sessionNumber = await nextSessionNumber(tx, node.campaignId);
+            if (mutableDetails.campaignId == null) {
+              mutableDetails.campaignId = node.campaignId;
+            }
+          }
+        }
+        await updateDetail(tx, id, node.type, mutableDetails);
       }
 
       return nodeUpdate;

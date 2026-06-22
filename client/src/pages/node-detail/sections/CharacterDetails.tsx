@@ -24,7 +24,7 @@ export function CharacterDetails({ node }: Props) {
   const d = node.characterDetail;
 
   return (
-    <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+    <div className="grid gap-2 text-sm text-muted dark:text-secondary sm:grid-cols-2">
       {d.race && <p><span className="font-medium">Race:</span> {d.race}</p>}
       {d.class && <p><span className="font-medium">Class:</span> {d.class}</p>}
       {d.level != null && <p><span className="font-medium">Level:</span> {d.level}</p>}

@@ -5,6 +5,27 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CampaignHub</title>
+    <script>
+      (function () {
+        try {
+          const t = localStorage.getItem("theme");
+          const h = localStorage.getItem("accentHue");
+          if (t === "dark" || t === "light") {
+            document.documentElement.setAttribute("data-theme", t);
+          } else if (t === "system" || !t) {
+            document.documentElement.setAttribute(
+              "data-theme",
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light",
+            );
+          }
+          if (h) document.documentElement.style.setProperty("--accent-hue", h);
+        } catch {
+          // ignore localStorage errors
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

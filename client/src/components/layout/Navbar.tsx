@@ -12,6 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { useCampaign } from "../../hooks/useCampaigns";
 import { useSearchSuggestions } from "../../hooks/useSearch";
+import { ThemeControls } from "../theme/ThemeControls";
 import type { SearchSuggestion } from "../../types";
 
 interface NavbarProps {
@@ -34,14 +35,14 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const { data: campaign } = useCampaign(campaignId ?? "");
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-3 dark:border-gray-700 dark:bg-gray-900 md:px-4">
+    <header className="relative z-50 flex h-14 items-center justify-between border-b border-default bg-navbar-bg px-3  md:px-4">
       <div className="flex items-center gap-2 md:gap-3">
         {/* Mobile hamburger: only visible on small screens and only when a
             menu click handler has been provided by the layout shell. */}
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 md:hidden dark:text-gray-300 dark:hover:bg-gray-800"
+            className="rounded-md p-1.5 text-muted hover:bg-surface md:hidden dark:text-secondary dark:hover:bg-surface"
             aria-label="Open navigation menu"
             title="Open menu"
           >
@@ -66,7 +67,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         {campaignId && (
           <button
             onClick={() => navigate("/campaigns")}
-            className="hidden rounded-md p-1.5 text-gray-600 hover:bg-gray-100 sm:block dark:text-gray-300 dark:hover:bg-gray-800"
+            className="hidden rounded-md p-1.5 text-muted hover:bg-surface sm:block dark:text-secondary dark:hover:bg-surface"
             title="Back to campaigns"
           >
             ← Back
@@ -75,7 +76,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* App title navigates back to the campaigns list */}
         <h1
-          className="cursor-pointer text-base font-bold text-gray-800 dark:text-white md:text-lg"
+          className="cursor-pointer text-base font-bold text-primary md:text-lg"
           onClick={() => navigate("/campaigns")}
         >
           CampaignHub
@@ -87,27 +88,73 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <SearchBar campaignId={campaignId} campaignName={campaign?.name} />
       </div>
 
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* Show user info and logout only while authenticated */}
-        {user && (
-          <>
-            <span className="hidden text-sm text-gray-600 md:inline dark:text-gray-300">
-              {user.displayName}
-            </span>
+      {user && <UserMenu displayName={user.displayName} onLogout={logout} />}
+    </header>
+  );
+}
+
+/**
+ * UserMenu – dropdown attached to the authenticated user's name in the navbar.
+ *
+ * Holds theme controls and the logout action. Closes when the user clicks
+ * outside the menu.
+ */
+function UserMenu({
+  displayName,
+  onLogout,
+}: {
+  displayName: string;
+  onLogout: () => void;
+}) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface hover:text-text-primary md:px-3"
+      >
+        <span className="hidden md:inline">{displayName}</span>
+        <span className="text-accent md:hidden">☰</span>
+        <span className="text-xs text-accent">▾</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border-default bg-surface shadow-lg dark:bg-surface">
+          <div className="border-b border-border-subtle px-3 py-2">
+            <p className="text-sm font-medium text-text-primary">{displayName}</p>
+          </div>
+          <ThemeControls />
+          <div className="border-t border-border-subtle p-2">
             <button
               onClick={() => {
-                // Clear the session in the auth store, then redirect.
-                logout();
+                onLogout();
                 navigate("/login");
+                setOpen(false);
               }}
-              className="rounded-md bg-gray-100 px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 md:px-3 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+              className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-text-secondary hover:bg-surface hover:text-text-primary"
             >
               Logout
             </button>
-          </>
-        )}
-      </div>
-    </header>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -207,7 +254,7 @@ function SearchBar({
 
   return (
     <div ref={containerRef} className="relative max-w-xl">
-      <div className="flex items-center overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-center overflow-hidden rounded-lg border border-default bg-elevated focus-within:border-accent focus-within:ring-1 focus-within:ring-accent dark:border-default dark:bg-surface">
         <input
           ref={inputRef}
           type="text"
@@ -219,7 +266,7 @@ function SearchBar({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 bg-transparent px-2 py-1.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none dark:text-gray-100 dark:placeholder-gray-500 md:px-3"
+          className="flex-1 bg-transparent px-2 py-1.5 text-sm text-primary placeholder-muted focus:outline-none dark:text-primary dark:placeholder-muted md:px-3"
           aria-label="Search nodes"
           aria-autocomplete="list"
           aria-controls="search-suggestions"
@@ -227,7 +274,7 @@ function SearchBar({
         />
         <button
           onClick={goToResults}
-          className="flex h-8 w-8 items-center justify-center text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="flex h-8 w-8 items-center justify-center text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
           aria-label="Search"
           title="Search"
         >
@@ -251,17 +298,17 @@ function SearchBar({
       {showDropdown && (
         <div
           id="search-suggestions"
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+          className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-default bg-elevated shadow-lg dark:border-default dark:bg-elevated"
           role="listbox"
         >
           {isLoading && (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="px-3 py-2 text-sm text-muted dark:text-secondary">
               Loading...
             </div>
           )}
 
           {!isLoading && suggestions && suggestions.length === 0 && (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="px-3 py-2 text-sm text-muted dark:text-secondary">
               No matching nodes
             </div>
           )}
@@ -275,20 +322,20 @@ function SearchBar({
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
                   index === highlightedIndex
-                    ? "bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100"
-                    : "text-gray-700 dark:text-gray-200"
+                    ? "bg-accent-subtle text-accent ring-1 ring-inset ring-accent dark:bg-accent-subtle dark:text-accent dark:ring-accent"
+                    : "text-primary dark:text-secondary"
                 }`}
                 role="option"
                 aria-selected={index === highlightedIndex}
               >
                 <span className="truncate font-medium">{suggestion.title}</span>
-                <span className="ml-2 shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                <span className="ml-2 shrink-0 text-xs text-secondary dark:text-muted">
                   {suggestion.type}
                 </span>
               </button>
             ))}
 
-          <div className="border-t border-gray-100 px-3 py-1.5 text-xs text-gray-400 dark:border-gray-800 dark:text-gray-500">
+          <div className="border-t border-subtle px-3 py-1.5 text-xs text-secondary dark:border-subtle dark:text-muted">
             Press Enter to see all results
           </div>
         </div>

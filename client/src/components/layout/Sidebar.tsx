@@ -54,7 +54,7 @@ const NODE_TYPE_ORDER: NodeType[] = [
 // Shared aside classes. On desktop the sidebar is static and visible. On mobile
 // it is fixed, full-height, and translated off-screen until `isOpen` is true.
 const SIDEBAR_CLASSES =
-  "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-gray-50 p-4 transition-transform duration-200 ease-in-out dark:border-gray-700 dark:bg-gray-900 md:static md:translate-x-0";
+  "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-default bg-accent-subtle p-4 transition-transform duration-200 ease-in-out md:static md:translate-x-0";
 
 /**
  * Top-level sidebar router.
@@ -130,7 +130,7 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
         }`}
         aria-label="Campaigns sidebar"
       >
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted dark:text-secondary">
           My Campaigns
         </h2>
 
@@ -141,13 +141,13 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
             <button
               key={campaign.id}
               onClick={() => navigate(`/campaigns/${campaign.id}`)}
-              className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               <div className="flex items-center justify-between">
                 <span className="truncate">{campaign.name}</span>
                 {/* Badge the campaign if the current user is its DM */}
                 {campaign.dmId === campaign.dm?.id && (
-                  <span className="ml-2 text-[10px] rounded bg-blue-100 px-1.5 py-0.5 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  <span className="ml-2 text-[10px] rounded bg-accent-subtle px-1.5 py-0.5 text-accent dark:bg-accent-subtle dark:text-accent">
                     DM
                   </span>
                 )}
@@ -158,7 +158,7 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
 
         {/* Empty state when the user has no campaigns */}
         {campaigns?.length === 0 && (
-          <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="py-4 text-center text-sm text-muted dark:text-secondary">
             No campaigns yet
           </p>
         )}
@@ -246,7 +246,7 @@ function CampaignNavSidebar({
       >
         {/* <button
           onClick={() => navigate("/campaigns")}
-          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="mb-4 flex items-center gap-1 text-sm text-muted hover:text-primary dark:text-secondary dark:hover:text-secondary"
         >
           ← All Campaigns
         </button> */}
@@ -254,7 +254,7 @@ function CampaignNavSidebar({
         {/* Campaign title links back to the campaign overview */}
         <button
           onClick={() => navigate(`/campaigns/${campaignId}`)}
-          className="mb-1 text-left text-sm font-bold text-gray-800 hover:text-blue-600 dark:text-white dark:hover:text-blue-400"
+          className="mb-1 text-left text-sm font-bold text-primary hover:text-accent dark:text-primary dark:hover:text-accent"
         >
           {campaign.name}
         </button>
@@ -270,8 +270,8 @@ function CampaignNavSidebar({
                 key={type}
                 className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
                   isActive
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    : "text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
+                    ? "bg-item-bg text-accent ring-1 ring-accent dark:bg-item-bg dark:text-accent dark:ring-accent"
+                    : "text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
                 }`}
               >
                 {/* Filter button: navigate to campaign with type query param */}
@@ -285,8 +285,8 @@ function CampaignNavSidebar({
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       isActive
-                        ? "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200"
-                        : "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                        ? "bg-surface text-accent dark:bg-surface dark:text-accent"
+                        : "bg-surface text-muted dark:bg-surface dark:text-secondary"
                     }`}
                   >
                     {count}
@@ -301,7 +301,7 @@ function CampaignNavSidebar({
                       `/campaigns/${campaignId}?type=${type}&create=1`,
                     );
                   }}
-                  className="ml-1 rounded p-0.5 text-gray-400 hover:bg-gray-300 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  className="ml-1 rounded p-0.5 text-accent hover:bg-accent-subtle dark:text-accent dark:hover:bg-accent-subtle"
                   title={`Create ${NODE_TYPE_LABELS[type]}`}
                 >
                   +
@@ -312,7 +312,7 @@ function CampaignNavSidebar({
         </div>
 
         {/* Recently updated nodes for quick access */}
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted dark:text-secondary">
           Recent Nodes
         </h3>
         <div className="space-y-1">
@@ -322,9 +322,9 @@ function CampaignNavSidebar({
               onClick={() =>
                 navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
               }
-              className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
-              <span className="mr-1 text-xs text-gray-400">
+              <span className="mr-1 text-xs text-secondary">
                 {node.type.slice(0, 3)}
               </span>
               {node.title}

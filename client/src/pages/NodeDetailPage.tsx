@@ -21,6 +21,7 @@ import { BlocksSection } from "./node-detail/BlocksSection";
 import { AddBlockModal } from "./node-detail/AddBlockModal";
 import { ParentBreadcrumbs } from "./node-detail/ParentBreadcrumbs";
 import { NodeDetailsAndLinks } from "./node-detail/NodeDetailsAndLinks";
+import type { NodeType } from "../types";
 
 /**
  * ============================================================================
@@ -45,6 +46,16 @@ import { NodeDetailsAndLinks } from "./node-detail/NodeDetailsAndLinks";
  *  - Allow editing/deleting the node title when the user owns the node or is DM.
  *  - Support adding new blocks through a modal.
  */
+
+const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  SESSION: "Session",
+  CHARACTER: "Character",
+  CREATURE: "Creature",
+  ITEM: "Item",
+  LOCATION: "Location",
+  NOTE: "Note",
+  FACTION: "Faction",
+};
 
 /**
  * NodeDetailPage – full view for any node type.
@@ -130,8 +141,18 @@ export function NodeDetailPage() {
   // Render
   // --------------------------------------------------------------------------
 
+  const typeLabel = NODE_TYPE_LABELS[node.type];
+
   return (
     <div className="space-y-6">
+      {/* Back link to the filtered list for this node type */}
+      <button
+        onClick={() => navigate(`/campaigns/${campaignId}?type=${node.type}`)}
+        className="text-sm text-accent hover:underline dark:text-accent"
+      >
+        ← Back to {typeLabel}s
+      </button>
+
       {/* Title, type badge, visibility badge, and delete action */}
       <NodeHeader
         node={node}
@@ -155,14 +176,14 @@ export function NodeDetailPage() {
       <NodeDetailsAndLinks node={node} campaignId={campaignId!} blocks={blocks} />
 
       {/* Blocks: free-form content attached to the node (the main feature). */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
+      <section className="rounded-xl border border-transparent bg-card-bg p-4 md:p-6 ">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+          <h2 className="text-lg font-semibold text-primary">
             Blocks
           </h2>
           <button
             onClick={() => setShowAddBlock(true)}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
           >
             + Add Block
           </button>
@@ -188,8 +209,8 @@ export function NodeDetailPage() {
 
       {/* Read-only list of child nodes */}
       {node.children && node.children.length > 0 && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+        <section className="rounded-xl border border-transparent bg-card-bg p-4 ">
+          <h3 className="mb-2 text-sm font-semibold text-primary dark:text-secondary">
             Children
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -199,7 +220,7 @@ export function NodeDetailPage() {
                 onClick={() =>
                   navigate(`/campaigns/${campaignId}/nodes/${child.id}`)
                 }
-                className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="rounded-lg border border-transparent bg-item-bg px-3 py-1 text-sm text-primary transition-colors hover:bg-accent-subtle"
               >
                 {child.title}
               </button>

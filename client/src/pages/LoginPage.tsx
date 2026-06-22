@@ -79,15 +79,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-950">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg dark:bg-gray-900">
-        <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">
+    <div className="flex min-h-screen items-center justify-center bg-surface px-4 dark:bg-base">
+      <div className="w-full max-w-md rounded-xl bg-card-bg p-8 shadow-lg">
+        <h1 className="mb-6 text-2xl font-bold text-primary">
           Sign in to CampaignHub
         </h1>
 
         {/* Inline error alert */}
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+          <div className="mb-4 rounded-lg bg-danger-subtle p-3 text-sm text-danger dark:bg-danger-subtle dark:text-danger">
             {error}
           </div>
         )}
@@ -95,7 +95,7 @@ export function LoginPage() {
         {/* Login form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
               Email
             </label>
             <input
@@ -103,12 +103,12 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
               Password
             </label>
             <input
@@ -116,25 +116,25 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         {/* Link to the registration page */}
-        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-4 text-center text-sm text-muted dark:text-secondary">
           Don't have an account?{" "}
           <Link
             to="/register"
-            className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+            className="font-medium text-accent hover:underline dark:text-accent"
           >
             Create one
           </Link>

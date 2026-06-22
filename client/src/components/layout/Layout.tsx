@@ -31,7 +31,7 @@ export function Layout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-gray-950">
+    <div className="flex h-screen flex-col bg-base dark:bg-base">
       {/* Top navigation bar; the hamburger button toggles the mobile sidebar. */}
       <Navbar onMenuClick={() => setMobileSidebarOpen(true)} />
 

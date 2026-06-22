@@ -45,18 +45,18 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
             <input
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-2xl font-bold focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="flex-1 rounded-lg border border-default px-3 py-2 text-2xl font-bold focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
             <button
               onClick={save}
               disabled={isUpdating}
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
             >
               Save
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               Cancel
             </button>
@@ -64,14 +64,14 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
         ) : (
           // Read-only title with edit trigger
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{node.title}</h1>
+            <h1 className="text-2xl font-bold text-primary">{node.title}</h1>
             {canEdit && (
               <button
                 onClick={() => {
                   setEditTitle(node.title);
                   setEditing(true);
                 }}
-                className="rounded-md px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                className="rounded-md px-2 py-1 text-sm text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
               >
                 Edit
               </button>
@@ -81,7 +81,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
 
         {/* Badges row */}
         <div className="mt-2 flex items-center gap-2">
-          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+          <span className="rounded bg-surface px-2 py-0.5 text-xs font-medium text-muted dark:bg-surface dark:text-secondary">
             {node.type}
           </span>
           <VisibilityBadge visibility={node.visibility} />
@@ -92,7 +92,7 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
       {canDelete && (
         <button
           onClick={onDelete}
-          className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+          className="rounded-lg bg-danger-subtle px-3 py-1.5 text-sm font-medium text-danger hover:bg-danger-subtle dark:bg-danger-subtle dark:text-danger dark:hover:bg-danger-subtle"
         >
           Delete
         </button>
@@ -107,10 +107,10 @@ export function NodeHeader({ node, canEdit, canDelete, onUpdateTitle, onDelete, 
 function VisibilityBadge({ visibility }: { visibility: string }) {
   const styles =
     visibility === "PUBLIC"
-      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+      ? "bg-success-subtle text-success dark:bg-success-subtle dark:text-success"
       : visibility === "PRIVATE"
-        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-        : "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300";
+        ? "bg-warning-subtle text-warning dark:bg-warning-subtle dark:text-warning"
+        : "bg-accent-subtle text-accent dark:bg-accent-subtle dark:text-accent";
 
   return (
     <span className={`rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{visibility}</span>

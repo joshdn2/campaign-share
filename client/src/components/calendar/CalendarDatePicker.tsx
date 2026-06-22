@@ -37,15 +37,15 @@ export function CalendarDatePicker({ calendar, value, onChange, label }: Props) 
   };
 
   const selectClass =
-    "rounded border border-gray-300 px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white";
+    "rounded border border-default px-1.5 py-1 text-xs dark:border-default dark:bg-surface dark:text-primary";
   const inputClass =
-    "rounded border border-gray-300 px-1.5 py-1 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-white";
-  const labelClass = "block text-[10px] font-medium text-gray-500 dark:text-gray-400";
+    "rounded border border-default px-1.5 py-1 text-xs dark:border-default dark:bg-surface dark:text-primary";
+  const labelClass = "block text-[10px] font-medium text-muted dark:text-secondary";
 
   return (
     <div>
       {label && (
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
           {label}
         </label>
       )}

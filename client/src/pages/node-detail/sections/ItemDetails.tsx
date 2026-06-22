@@ -23,7 +23,7 @@ export function ItemDetails({ node }: Props) {
   const d = node.itemDetail;
 
   return (
-    <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+    <div className="grid gap-2 text-sm text-muted dark:text-secondary sm:grid-cols-2">
       {d.itemType && <p><span className="font-medium">Type:</span> {d.itemType}</p>}
       {d.rarity && <p><span className="font-medium">Rarity:</span> {d.rarity}</p>}
       {d.value && <p><span className="font-medium">Value:</span> {d.value}</p>}

@@ -24,7 +24,7 @@ export function FactionDetails({ node }: Props) {
   const d = node.factionDetail;
 
   return (
-    <div className="grid gap-2 text-sm text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+    <div className="grid gap-2 text-sm text-muted dark:text-secondary sm:grid-cols-2">
       {d.factionType && <p><span className="font-medium">Type:</span> {d.factionType}</p>}
       {d.alignment && <p><span className="font-medium">Alignment:</span> {d.alignment}</p>}
       {d.size && <p><span className="font-medium">Size:</span> {d.size}</p>}

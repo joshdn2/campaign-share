@@ -161,21 +161,21 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
   };
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white";
+    "w-full rounded-lg border border-default px-2 py-1.5 text-sm dark:border-default dark:bg-surface dark:text-primary";
   const numberClass =
-    "rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white";
-  const labelClass = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
+    "rounded-lg border border-default px-2 py-1.5 text-sm dark:border-default dark:bg-surface dark:text-primary";
+  const labelClass = "mb-1 block text-xs font-medium text-muted dark:text-secondary";
   const iconButtonClass =
-    "rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800";
+    "rounded-lg p-1.5 text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-bold text-gray-800 dark:text-white">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-card-bg p-6 shadow-xl">
+        <h2 className="mb-4 text-lg font-bold text-primary">
           {calendar ? "Edit Calendar" : "Create Calendar"}
         </h2>
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+          <div className="mb-4 rounded-lg bg-danger-subtle p-3 text-sm text-danger dark:bg-danger-subtle dark:text-danger">
             {error}
           </div>
         )}
@@ -195,17 +195,17 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
           {/* Ages */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">Ages</h3>
+              <h3 className="text-sm font-semibold text-primary">Ages</h3>
               <button
                 type="button"
                 onClick={handleAddAge}
-                className="rounded-lg bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-accent px-2.5 py-1 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
               >
                 + Add Age
               </button>
             </div>
             {ages.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No ages added yet.</p>
+              <p className="text-sm text-muted dark:text-secondary">No ages added yet.</p>
             )}
             <div className="space-y-2">
               {ages.map((age, index) => (
@@ -262,17 +262,17 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
           {/* Months */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-white">Months</h3>
+              <h3 className="text-sm font-semibold text-primary">Months</h3>
               <button
                 type="button"
                 onClick={handleAddMonth}
-                className="rounded-lg bg-blue-600 px-2.5 py-1 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-accent px-2.5 py-1 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
               >
                 + Add Month
               </button>
             </div>
             {months.length === 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No months added yet.</p>
+              <p className="text-sm text-muted dark:text-secondary">No months added yet.</p>
             )}
             <div className="space-y-2">
               {months.map((month, index) => (
@@ -349,11 +349,11 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
           </div>
 
           {/* Anchor date */}
-          <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-            <h3 className="mb-1 text-sm font-semibold text-gray-800 dark:text-white">
+          <div className="rounded-lg border border-transparent bg-item-bg p-4">
+            <h3 className="mb-1 text-sm font-semibold text-primary">
               Weekday Anchor
             </h3>
-            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mb-3 text-xs text-muted dark:text-secondary">
               Pick a date you know falls on a specific weekday. The calendar uses this to
               calculate weekdays for every other date.
             </p>
@@ -420,14 +420,14 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save Calendar"}
             </button>

@@ -127,7 +127,7 @@ export function NodeTagInsert({
       <button
         type="button"
         onClick={openSearch}
-        className="rounded px-2 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+        className="rounded px-2 py-1 text-sm font-medium text-accent hover:bg-accent-subtle dark:text-accent dark:hover:bg-accent-subtle"
         title="Tag a node"
         aria-label="Tag a node"
       >
@@ -135,25 +135,25 @@ export function NodeTagInsert({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-lg border border-default bg-elevated shadow-lg dark:border-default dark:bg-elevated">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Tag node..."
-            className="w-full border-b border-gray-100 px-3 py-2 text-sm focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+            className="w-full border-b border-subtle px-3 py-2 text-sm focus:outline-none dark:border-subtle dark:bg-surface dark:text-primary"
           />
 
           <div className="max-h-48 overflow-y-auto">
             {isLoading && (
-              <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="px-3 py-2 text-sm text-muted dark:text-secondary">
                 Loading...
               </div>
             )}
 
             {!isLoading && suggestions && suggestions.length === 0 && (
-              <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="px-3 py-2 text-sm text-muted dark:text-secondary">
                 No matching nodes
               </div>
             )}
@@ -168,12 +168,12 @@ export function NodeTagInsert({
                   onMouseEnter={() => setHighlightedIndex(index)}
                   className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
                     index === highlightedIndex
-                      ? "bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100"
-                      : "text-gray-700 dark:text-gray-200"
+                      ? "bg-accent-subtle text-accent dark:bg-accent-subtle dark:text-accent"
+                      : "text-primary dark:text-secondary"
                   }`}
                 >
                   <span className="truncate">{suggestion.title}</span>
-                  <span className="ml-2 shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                  <span className="ml-2 shrink-0 text-xs text-secondary dark:text-muted">
                     {suggestion.type}
                   </span>
                 </button>

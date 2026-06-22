@@ -33,21 +33,21 @@ export function ParentSelector({ node, campaignNodes, onChange }: Props) {
 
   // If there are no other nodes, there is nothing to select.
   if (otherNodes.length === 0) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">No other nodes available.</p>;
+    return <p className="text-sm text-muted dark:text-secondary">No other nodes available.</p>;
   }
 
   // Read-only view showing the current parent and an edit trigger.
   if (!editing) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 dark:text-gray-400">
+        <span className="text-sm text-muted dark:text-secondary">
           {node.parentId
             ? otherNodes.find((n) => n.id === node.parentId)?.title || "Unknown"
             : "None"}
         </span>
         <button
           onClick={() => setEditing(true)}
-          className="rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          className="rounded px-2 py-0.5 text-xs text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
         >
           Change
         </button>
@@ -61,7 +61,7 @@ export function ParentSelector({ node, campaignNodes, onChange }: Props) {
       <select
         value={selectedParentId}
         onChange={(e) => setSelectedParentId(e.target.value)}
-        className="flex-1 rounded-lg border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        className="flex-1 rounded-lg border border-default px-2 py-1 text-sm dark:border-default dark:bg-surface dark:text-primary"
       >
         <option value="none">No parent</option>
         {otherNodes.map((n) => (
@@ -75,7 +75,7 @@ export function ParentSelector({ node, campaignNodes, onChange }: Props) {
           onChange(selectedParentId === "none" ? null : selectedParentId);
           setEditing(false);
         }}
-        className="rounded-lg bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
+        className="rounded-lg bg-accent px-2 py-1 text-xs text-text-on-accent hover:bg-accent-hover"
       >
         Save
       </button>
@@ -84,7 +84,7 @@ export function ParentSelector({ node, campaignNodes, onChange }: Props) {
           setSelectedParentId(node.parentId || "none");
           setEditing(false);
         }}
-        className="rounded-lg px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+        className="rounded-lg px-2 py-1 text-xs text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
       >
         Cancel
       </button>

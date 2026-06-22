@@ -43,32 +43,32 @@ export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Pr
   };
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
+    <section className="rounded-xl border border-transparent bg-accent-subtle p-4 md:p-6">
       {editing ? (
         // Inline edit form
         <div className="space-y-3">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xl font-bold focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-default px-3 py-2 text-xl font-bold focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
           />
           <div className="flex gap-2">
             <button
               onClick={save}
               disabled={isUpdating}
-              className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               Save
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="rounded-lg px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded-lg px-4 py-1.5 text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               Cancel
             </button>
@@ -78,18 +78,18 @@ export function CampaignInfoSection({ campaign, isDm, onUpdate, isUpdating }: Pr
         // Read-only view
         <div>
           <div className="mb-2 flex items-start justify-between">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{campaign.name}</h1>
+            <h1 className="text-2xl font-bold text-primary">{campaign.name}</h1>
             {isDm && (
               <button
                 onClick={startEditing}
-                className="rounded-md px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="rounded-md px-3 py-1 text-sm text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
               >
                 Edit
               </button>
             )}
           </div>
           {campaign.description && (
-            <p className="text-gray-600 dark:text-gray-400">{campaign.description}</p>
+            <p className="text-muted dark:text-secondary">{campaign.description}</p>
           )}
         </div>
       )}

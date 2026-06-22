@@ -77,18 +77,18 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-bold text-gray-800 dark:text-white">Add Link</h2>
+      <div className="w-full max-w-md rounded-xl bg-card-bg p-6 shadow-xl">
+        <h2 className="mb-4 text-lg font-bold text-primary">Add Link</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
               Type
             </label>
             <select
               value={selectedType}
               onChange={handleTypeChange}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-default px-3 py-2 text-sm dark:border-default dark:bg-surface dark:text-primary"
             >
               <option value="">Select type</option>
               {NODE_TYPES.map((type) => (
@@ -100,7 +100,7 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
               Node
             </label>
             <select
@@ -108,7 +108,7 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
               onChange={(e) => setSelectedTargetId(e.target.value)}
               required
               disabled={!selectedType || isLoadingNodes}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-default px-3 py-2 text-sm disabled:opacity-50 dark:border-default dark:bg-surface dark:text-primary"
             >
               <option value="">
                 {isLoadingNodes ? "Loading..." : "Select node"}
@@ -122,7 +122,7 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
               Label
             </label>
             <input
@@ -131,9 +131,9 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
               onChange={(e) => setLabel(e.target.value)}
               maxLength={30}
               placeholder="e.g., works at, owner of"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
-            <p className="mt-1 text-right text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-right text-xs text-muted dark:text-secondary">
               {label.length}/30
             </p>
           </div>
@@ -142,14 +142,14 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending || !selectedTargetId}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save"}
             </button>

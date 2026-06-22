@@ -29,10 +29,8 @@ export function NodeTypeGrid({ campaignId, label, nodes }: Props) {
   if (nodes.length === 0) return null;
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 md:p-6 dark:border-gray-700 dark:bg-gray-900">
-      <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white">
-        {label}s
-      </h2>
+    <section className="rounded-xl border border-transparent bg-accent-subtle p-4 md:p-6">
+      <h2 className="mb-4 text-lg font-semibold text-primary">{label}s</h2>
       <div className="grid gap-2 sm:grid-cols-2">
         {nodes.map((node) => (
           <button
@@ -40,13 +38,13 @@ export function NodeTypeGrid({ campaignId, label, nodes }: Props) {
             onClick={() =>
               navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
             }
-            className="rounded-lg border border-gray-100 p-3 text-left hover:border-blue-200 hover:bg-blue-50 dark:border-gray-800 dark:hover:border-blue-900 dark:hover:bg-blue-900/10"
+            className="group rounded-lg border border-accent/30 bg-item-bg p-3 text-left transition-colors hover:border-accent hover:bg-base"
           >
-            <span className="font-medium text-gray-800 dark:text-white">
+            <span className="font-medium text-primary transition-colors">
               {node.title}
             </span>
             {node.excerpt && (
-              <p className="mt-1 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 line-clamp-1 text-xs text-muted dark:text-secondary">
                 {node.excerpt}
               </p>
             )}

@@ -276,33 +276,39 @@ export function CampaignDetailPage() {
       {/* Full campaign dashboard view */}
       {!filterType && (
         <>
-          <CampaignInfoSection
-            campaign={campaign}
-            isDm={isDm}
-            onUpdate={async (data) => {
-              await updateCampaign.mutateAsync(data);
-            }}
-            isUpdating={updateCampaign.isPending}
-          />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <div className="lg:col-span-1">
+              <CampaignInfoSection
+                campaign={campaign}
+                isDm={isDm}
+                onUpdate={async (data) => {
+                  await updateCampaign.mutateAsync(data);
+                }}
+                isUpdating={updateCampaign.isPending}
+              />
+            </div>
+
+            <div className="lg:col-span-1">
+              <MembersSection
+                campaign={campaign}
+                isDm={isDm}
+                onAddMember={() => setShowAddMember(true)}
+                onToggleRole={(userId, currentRole) =>
+                  updateMemberRole.mutate({
+                    userId,
+                    role: currentRole === "PLAYER" ? "LOREMASTER" : "PLAYER",
+                  })
+                }
+                onRemoveMember={(userId) => removeMember.mutate(userId)}
+              />
+            </div>
+          </div>
 
           <CalendarCard
             campaignId={campaignId!}
             isDm={isDm}
             isLoremaster={isLoremaster}
             onEditCalendar={() => setShowCalendarEdit(true)}
-          />
-
-          <MembersSection
-            campaign={campaign}
-            isDm={isDm}
-            onAddMember={() => setShowAddMember(true)}
-            onToggleRole={(userId, currentRole) =>
-              updateMemberRole.mutate({
-                userId,
-                role: currentRole === "PLAYER" ? "LOREMASTER" : "PLAYER",
-              })
-            }
-            onRemoveMember={(userId) => removeMember.mutate(userId)}
           />
 
           {GRID_TYPES.map((type) => (

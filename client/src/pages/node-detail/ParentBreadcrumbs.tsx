@@ -34,7 +34,7 @@ export function ParentBreadcrumbs({
 
   return (
     <nav
-      className="text-sm text-gray-500 dark:text-gray-400"
+      className="text-sm text-muted dark:text-secondary"
       aria-label="Parent breadcrumbs"
     >
       {ancestors.map((ancestor) => (
@@ -43,14 +43,14 @@ export function ParentBreadcrumbs({
             onClick={() =>
               navigate(`/campaigns/${campaignId}/nodes/${ancestor.id}`)
             }
-            className="hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+            className="hover:text-accent hover:underline dark:hover:text-accent"
           >
             {ancestor.title}
           </button>
-          <span className="mx-1.5 text-gray-400 dark:text-gray-600">›</span>
+          <span className="mx-1.5 text-accent">›</span>
         </span>
       ))}
-      <span className="font-medium text-gray-700 dark:text-gray-300">
+      <span className="font-medium text-primary">
         {currentTitle}
       </span>
     </nav>

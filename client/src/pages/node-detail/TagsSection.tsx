@@ -26,7 +26,7 @@ export function TagsSection({ tags }: Props) {
       {tags.map((tag) => (
         <span
           key={tag.id}
-          className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+          className="rounded-full border border-accent-subtle bg-surface px-3 py-1 text-xs font-medium text-muted dark:border-accent-subtle dark:bg-surface dark:text-secondary"
         >
           #{tag.tag}
         </span>

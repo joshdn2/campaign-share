@@ -120,7 +120,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
   // Nothing to render if all directions are empty.
   if (!hasManualLinks && !hasMentions) {
     return (
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      <p className="text-sm text-muted dark:text-secondary">
         No links yet. Use the + button to add one, or tag a node with @ in a TEXT block.
       </p>
     );
@@ -137,7 +137,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
               return (
                 <span
                   key={link.id}
-                  className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                  className="inline-flex items-center gap-1 rounded-lg bg-accent-subtle px-2 py-1 text-sm text-accent ring-1 ring-accent dark:bg-accent-subtle dark:text-accent dark:ring-accent"
                 >
                   <button
                     onClick={() =>
@@ -152,7 +152,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
                     <button
                       onClick={() => handleDelete(link.id)}
                       disabled={deleteLink.isPending}
-                      className="ml-0.5 rounded p-0.5 text-blue-600 hover:bg-blue-100 disabled:opacity-50 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                      className="ml-0.5 rounded p-0.5 text-accent hover:bg-accent-subtle hover:ring-1 hover:ring-accent disabled:opacity-50 dark:text-accent dark:hover:bg-accent-subtle dark:hover:ring-accent"
                       aria-label="Delete link"
                     >
                       <TrashIcon />
@@ -168,7 +168,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
       {/* Mentions derived from TEXT block tags */}
       {hasMentions && (
         <div>
-          <h3 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+          <h3 className="mb-1 text-sm font-medium text-muted dark:text-secondary">
             Mentions
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -180,7 +180,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
                   onClick={() =>
                     navigate(`/campaigns/${campaignId}/nodes/${mention.id}`)
                   }
-                  className="rounded-lg bg-indigo-50 px-3 py-1 text-sm text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/30"
+                  className="rounded-lg bg-accent-subtle px-3 py-1 text-sm text-accent ring-1 ring-accent hover:bg-accent-subtle dark:bg-accent-subtle dark:text-accent dark:ring-accent dark:hover:bg-accent-subtle"
                 >
                   mention: {mention.title}
                 </button>

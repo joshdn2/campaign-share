@@ -72,16 +72,16 @@ export function SearchResultsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+        <h1 className="text-2xl font-bold text-primary">
           Search results
         </h1>
         {q ? (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted dark:text-secondary">
             {total} {total === 1 ? "result" : "results"} for "{q}"
             {campaignId ? " in this campaign" : " across all your campaigns"}
           </p>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted dark:text-secondary">
             Enter a search term above to find nodes.
           </p>
         )}
@@ -89,8 +89,8 @@ export function SearchResultsPage() {
 
       {/* Results list */}
       {results.length === 0 && !isLoading && (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="rounded-xl border border-transparent bg-card-bg p-8 text-center ">
+          <p className="text-muted dark:text-secondary">
             No nodes matched your search.
           </p>
         </div>
@@ -122,33 +122,33 @@ function ResultCard({ result }: { result: SearchResult }) {
   return (
     <Link
       to={`/campaigns/${result.campaignId}/nodes/${result.id}`}
-      className="block rounded-xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
+      className="block rounded-xl border border-transparent bg-card-bg p-4 transition-shadow hover:shadow-md "
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+        <span className="rounded bg-accent-subtle px-2 py-0.5 text-xs font-medium text-accent dark:bg-accent-subtle dark:text-accent">
           {NODE_TYPE_LABELS[result.type]}
         </span>
         {result.matchedFields.map((field) => (
           <span
             key={field}
-            className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            className="rounded bg-surface px-2 py-0.5 text-xs text-muted dark:bg-surface dark:text-secondary"
           >
             {MATCHED_FIELD_LABELS[field] || field}
           </span>
         ))}
       </div>
 
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+      <h2 className="text-lg font-semibold text-primary">
         {result.title}
       </h2>
 
       {result.excerpt && (
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-sm text-muted dark:text-secondary">
           {result.excerpt}
         </p>
       )}
 
-      <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+      <p className="mt-2 text-xs text-muted dark:text-muted">
         {result.campaignName}
       </p>
     </Link>
@@ -193,7 +193,7 @@ function Pagination({
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
-        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        className="rounded-lg border border-default px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface disabled:opacity-50 dark:border-default dark:text-secondary dark:hover:bg-surface"
       >
         Previous
       </button>
@@ -202,7 +202,7 @@ function Pagination({
         p === "..." ? (
           <span
             key={`ellipsis-${index}`}
-            className="px-2 text-sm text-gray-500 dark:text-gray-400"
+            className="px-2 text-sm text-muted dark:text-secondary"
           >
             ...
           </span>
@@ -212,8 +212,8 @@ function Pagination({
             onClick={() => onPageChange(p as number)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
               p === page
-                ? "bg-blue-600 text-white"
-                : "border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                ? "bg-accent text-text-on-accent"
+                : "border border-default text-primary hover:bg-surface dark:border-default dark:text-secondary dark:hover:bg-surface"
             }`}
           >
             {p}
@@ -224,7 +224,7 @@ function Pagination({
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
-        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        className="rounded-lg border border-default px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface disabled:opacity-50 dark:border-default dark:text-secondary dark:hover:bg-surface"
       >
         Next
       </button>

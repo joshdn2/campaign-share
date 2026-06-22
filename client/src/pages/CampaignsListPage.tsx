@@ -65,10 +65,10 @@ export function CampaignsListPage() {
     <div>
       {/* Header with the new-campaign trigger */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My Campaigns</h1>
+        <h1 className="text-2xl font-bold text-primary">My Campaigns</h1>
         <button
           onClick={() => setShowModal(true)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
         >
           + New Campaign
         </button>
@@ -76,8 +76,8 @@ export function CampaignsListPage() {
 
       {/* Empty state for users who have not joined any campaigns yet */}
       {campaigns?.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-12 text-center dark:border-gray-700">
-          <p className="text-gray-500 dark:text-gray-400">
+        <div className="rounded-xl border border-dashed border-default bg-card-bg p-12 text-center dark:border-default">
+          <p className="text-muted dark:text-secondary">
             No campaigns yet. Create your first one to get started!
           </p>
         </div>
