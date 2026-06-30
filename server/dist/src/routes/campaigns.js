@@ -62,10 +62,10 @@ router.post("/", async (req, res) => {
             dmId: userId,
         },
         include: {
-            dm: { select: { id: true, email: true, displayName: true } },
+            dm: { select: { id: true, email: true, username: true } },
             members: {
                 include: {
-                    user: { select: { id: true, email: true, displayName: true } },
+                    user: { select: { id: true, email: true, username: true } },
                 },
             },
             _count: { select: { members: true } },
@@ -91,10 +91,10 @@ router.get("/my", async (req, res) => {
             ],
         },
         include: {
-            dm: { select: { id: true, email: true, displayName: true } },
+            dm: { select: { id: true, email: true, username: true } },
             members: {
                 include: {
-                    user: { select: { id: true, email: true, displayName: true } },
+                    user: { select: { id: true, email: true, username: true } },
                 },
             },
             _count: { select: { members: true, nodes: true } },
@@ -117,10 +117,10 @@ router.get("/:id", async (req, res) => {
     const campaign = await db_1.prisma.campaign.findUnique({
         where: { id },
         include: {
-            dm: { select: { id: true, email: true, displayName: true } },
+            dm: { select: { id: true, email: true, username: true } },
             members: {
                 include: {
-                    user: { select: { id: true, email: true, displayName: true } },
+                    user: { select: { id: true, email: true, username: true } },
                 },
                 orderBy: { joinedAt: "asc" },
             },
@@ -144,7 +144,7 @@ router.get("/:id", async (req, res) => {
             ...nodeVisibilityFilter(campaign.dmId, userId),
         },
         include: {
-            owner: { select: { id: true, displayName: true } },
+            owner: { select: { id: true, username: true } },
             tags: true,
             _count: { select: { blocks: true } },
         },
@@ -180,10 +180,10 @@ router.patch("/:id", async (req, res) => {
         where: { id },
         data: parse.data,
         include: {
-            dm: { select: { id: true, email: true, displayName: true } },
+            dm: { select: { id: true, email: true, username: true } },
             members: {
                 include: {
-                    user: { select: { id: true, email: true, displayName: true } },
+                    user: { select: { id: true, email: true, username: true } },
                 },
             },
         },
@@ -216,7 +216,7 @@ router.delete("/:id", async (req, res) => {
 /**
  * POST /api/campaigns/:id/members
  *
- * Add a user to the campaign by email.
+ * Add an existing user to the campaign by email or username (display name).
  *
  * Only the DM may invite members. The target user must exist and cannot be the
  * DM themselves. Duplicate memberships are rejected with a 409 conflict.
@@ -238,10 +238,23 @@ router.post("/:id/members", async (req, res) => {
         res.status(400).json({ error: parse.error.flatten() });
         return;
     }
-    const { email, role } = parse.data;
-    const targetUser = await db_1.prisma.user.findUnique({ where: { email } });
+    const { identifierType, identifier, role } = parse.data;
+    const targetUser = identifierType === "email"
+        ? await db_1.prisma.user.findUnique({
+            where: { email: identifier },
+            select: { id: true, email: true, username: true },
+        })
+        : await db_1.prisma.user.findFirst({
+            where: {
+                username: { equals: identifier, mode: "insensitive" },
+            },
+            select: { id: true, email: true, username: true },
+        });
     if (!targetUser) {
-        res.status(404).json({ error: "User not found" });
+        const notFoundMessage = identifierType === "email"
+            ? "User not found. Make sure they already have an account and try their email address."
+            : "User not found. Make sure the username is correct.";
+        res.status(404).json({ error: notFoundMessage });
         return;
     }
     if (targetUser.id === campaign.dmId) {
@@ -262,7 +275,7 @@ router.post("/:id/members", async (req, res) => {
             role,
         },
         include: {
-            user: { select: { id: true, email: true, displayName: true } },
+            user: { select: { id: true, email: true, username: true } },
         },
     });
     res.status(201).json(member);
@@ -320,7 +333,7 @@ router.patch("/:id/members/:memberUserId", async (req, res) => {
         where: { campaignId_userId: { campaignId: id, userId: memberUserId } },
         data: { role: parse.data.role },
         include: {
-            user: { select: { id: true, email: true, displayName: true } },
+            user: { select: { id: true, email: true, username: true } },
         },
     });
     res.json(member);

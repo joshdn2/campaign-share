@@ -10,6 +10,7 @@
         try {
           const t = localStorage.getItem("theme");
           const h = localStorage.getItem("accentHue");
+          const s = localStorage.getItem("accentSaturation");
           if (t === "dark" || t === "light") {
             document.documentElement.setAttribute("data-theme", t);
           } else if (t === "system" || !t) {
@@ -21,6 +22,7 @@
             );
           }
           if (h) document.documentElement.style.setProperty("--accent-hue", h);
+          if (s) document.documentElement.style.setProperty("--accent-saturation", `${s}%`);
         } catch {
           // ignore localStorage errors
         }

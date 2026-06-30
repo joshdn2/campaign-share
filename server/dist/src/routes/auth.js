@@ -17,6 +17,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../db");
 const validation_1 = require("../lib/validation");
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 // JWT secret and cookie settings. The secret signs tokens; SALT_ROUNDS controls
 // the bcrypt hashing cost.
@@ -39,19 +40,24 @@ router.post("/register", async (req, res) => {
         res.status(400).json({ error: parse.error.flatten() });
         return;
     }
-    const { email, password, displayName } = parse.data;
+    const { email, username, password } = parse.data;
     // Reject duplicate registrations early to avoid leaking whether a password
     // hash exists for an email.
-    const existing = await db_1.prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    const existingEmail = await db_1.prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
         res.status(409).json({ error: "Email already in use" });
+        return;
+    }
+    const existingUsername = await db_1.prisma.user.findUnique({ where: { username } });
+    if (existingUsername) {
+        res.status(409).json({ error: "Username already in use" });
         return;
     }
     // Hash the plaintext password before storing it in the database.
     const passwordHash = await bcrypt_1.default.hash(password, SALT_ROUNDS);
     const user = await db_1.prisma.user.create({
-        data: { email, passwordHash, displayName },
-        select: { id: true, email: true, displayName: true, createdAt: true },
+        data: { email, username, passwordHash },
+        select: { id: true, email: true, username: true, createdAt: true },
     });
     res.status(201).json(user);
 });
@@ -101,7 +107,7 @@ router.post("/login", async (req, res) => {
         user: {
             id: user.id,
             email: user.email,
-            displayName: user.displayName,
+            username: user.username,
         },
     });
 });
@@ -132,7 +138,7 @@ router.get("/me", async (req, res) => {
         const payload = jsonwebtoken_1.default.verify(token, JWT_SECRET);
         const user = await db_1.prisma.user.findUnique({
             where: { id: payload.userId },
-            select: { id: true, email: true, displayName: true },
+            select: { id: true, email: true, username: true },
         });
         if (!user) {
             res.status(401).json({ error: "User not found" });
@@ -143,5 +149,36 @@ router.get("/me", async (req, res) => {
     catch {
         res.status(401).json({ error: "Invalid token" });
     }
+});
+/**
+ * PATCH /api/auth/me
+ *
+ * Updates the currently authenticated user's profile.
+ *
+ * Requires a valid auth cookie. Only the fields provided in the body are
+ * updated. Returns the updated safe subset of the user record.
+ */
+router.patch("/me", auth_1.requireAuth, async (req, res) => {
+    const parse = validation_1.updateUserSchema.safeParse(req.body);
+    if (!parse.success) {
+        res.status(400).json({ error: parse.error.flatten() });
+        return;
+    }
+    const { username } = parse.data;
+    if (username) {
+        const existing = await db_1.prisma.user.findUnique({ where: { username } });
+        if (existing && existing.id !== req.user.userId) {
+            res.status(409).json({ error: "Username already in use" });
+            return;
+        }
+    }
+    const user = await db_1.prisma.user.update({
+        where: { id: req.user.userId },
+        data: {
+            username: username ?? undefined,
+        },
+        select: { id: true, email: true, username: true },
+    });
+    res.json({ user });
 });
 exports.default = router;

@@ -4,7 +4,7 @@
  * Compact block-style calendar card displayed on the campaign landing page.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCalendar } from "../../hooks/useCalendars";
 import { useCampaignNodes } from "../../hooks/useNodes";
@@ -70,11 +70,31 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
 
   const [viewDate, setViewDate] = useState(() => defaultView);
 
-  if (viewDate == null && defaultView != null) {
-    setViewDate(defaultView);
-  }
+  useEffect(() => {
+    if (viewDate == null && defaultView != null) {
+      setViewDate(defaultView);
+    }
+  }, [viewDate, defaultView]);
 
   const canManageCalendar = isDm || isLoremaster;
+
+  const allSessionDays = useMemo(() => {
+    if (!calendar) return new Set<number>();
+    const starts = groupNodesByAbsoluteDay(calendar, sessions, "startDate");
+    const ends = groupNodesByAbsoluteDay(calendar, sessions, "endDate");
+    const days = new Set<number>();
+    starts.forEach((_, abs) => days.add(abs));
+    ends.forEach((_, abs) => days.add(abs));
+    return days;
+  }, [calendar, sessions]);
+
+  const selectedSessions = useMemo(() => {
+    if (selectedAbsDay == null || !calendar) return [];
+    return [
+      ...(groupNodesByAbsoluteDay(calendar, sessions, "startDate").get(selectedAbsDay) ?? []),
+      ...(groupNodesByAbsoluteDay(calendar, sessions, "endDate").get(selectedAbsDay) ?? []),
+    ];
+  }, [calendar, selectedAbsDay, sessions]);
 
   if (calendarLoading || nodesLoading) {
     return (
@@ -117,6 +137,13 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
   const currentMonth = calendar.months.find((m) => m.id === viewDate.monthId);
   if (!currentAge || !currentMonth) return null;
 
+  const compactCalendar = calendar.daysInWeek > 7;
+  const colMinWidth = compactCalendar ? "1.75rem" : "3rem";
+  const headerPadding = compactCalendar ? "px-0.5 py-px" : "p-1";
+  const headerTextSize = compactCalendar ? "text-[10px]" : "text-xs";
+  const dayCellHeight = compactCalendar ? "h-7" : "h-8";
+  const dayCellText = compactCalendar ? "text-xs" : "text-sm";
+
   const firstOfMonth: ReturnType<typeof dateForAbsoluteDay> = {
     ageId: viewDate.ageId,
     year: viewDate.year,
@@ -129,22 +156,6 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
   const startWeekdayIndex = startWeekday
     ? Math.max(0, calendar.weekdayNames.indexOf(startWeekday))
     : 0;
-
-  const allSessionDays = useMemo(() => {
-    const starts = groupNodesByAbsoluteDay(calendar, sessions, "startDate");
-    const ends = groupNodesByAbsoluteDay(calendar, sessions, "endDate");
-    const days = new Set<number>();
-    starts.forEach((_, abs) => days.add(abs));
-    ends.forEach((_, abs) => days.add(abs));
-    return days;
-  }, [calendar, sessions]);
-
-  const selectedSessions = selectedAbsDay != null
-    ? [
-        ...(groupNodesByAbsoluteDay(calendar, sessions, "startDate").get(selectedAbsDay) ?? []),
-        ...(groupNodesByAbsoluteDay(calendar, sessions, "endDate").get(selectedAbsDay) ?? []),
-      ]
-    : [];
 
   const handlePrevMonth = () => {
     const prevAbs = (firstOfMonthAbs ?? 0) - 1;
@@ -268,22 +279,33 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
 
       <div className="flex flex-wrap justify-center gap-4">
         {/* Calendar grid */}
-        <div className="w-full max-w-5xl">
+        <div className="w-full max-w-5xl overflow-x-auto">
           <div
-            className="grid gap-px rounded border border-default bg-surface dark:border-default dark:bg-surface"
-            style={{ gridTemplateColumns: `repeat(${calendar.daysInWeek}, minmax(3rem, 1fr))` }}
+            className="grid min-w-max gap-px rounded border border-default bg-surface dark:border-default dark:bg-surface"
+            style={{
+              gridTemplateColumns: `repeat(${calendar.daysInWeek}, minmax(${colMinWidth}, 1fr))`,
+            }}
           >
             {calendar.weekdayNames.map((name) => (
               <div
                 key={name}
-                className="min-w-0 bg-elevated p-1 text-center text-xs font-medium text-muted dark:bg-elevated dark:text-secondary"
+                className={`min-w-0 bg-elevated text-center font-medium text-muted dark:bg-elevated dark:text-secondary ${headerPadding} ${headerTextSize}`}
               >
-                <span className="block truncate">{name}</span>
+                {compactCalendar ? (
+                  <span className="block truncate">{name.slice(0, 2)}</span>
+                ) : (
+                  <>
+                    <span className="block truncate sm:hidden">
+                      {name.slice(0, 2)}
+                    </span>
+                    <span className="hidden truncate sm:block">{name}</span>
+                  </>
+                )}
               </div>
             ))}
 
             {Array.from({ length: startWeekdayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-8 bg-surface dark:bg-elevated" />
+              <div key={`empty-${i}`} className={`${dayCellHeight} bg-surface dark:bg-elevated`} />
             ))}
 
             {Array.from({ length: currentMonth.days }).map((_, dayIndex) => {
@@ -296,7 +318,7 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
                 <button
                   key={day}
                   onClick={() => setSelectedAbsDay(isSelected ? null : dateAbs)}
-                  className={`flex h-8 items-center justify-center bg-elevated text-sm transition-colors dark:bg-elevated ${
+                  className={`flex ${dayCellHeight} ${dayCellText} items-center justify-center bg-elevated transition-colors dark:bg-elevated ${
                     isSelected
                       ? "bg-accent-subtle font-semibold text-accent ring-1 ring-inset ring-accent dark:bg-accent-subtle dark:text-accent dark:ring-accent"
                       : "text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"

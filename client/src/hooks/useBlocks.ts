@@ -12,7 +12,7 @@ import { api } from "../api/axios";
 import type { NodeBlock } from "../types";
 
 // Shared root query key for all block queries.
-const BLOCKS_KEY = "blocks";
+export const BLOCKS_KEY = "blocks";
 
 /**
  * Fetches all blocks for a given node.

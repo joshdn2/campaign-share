@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  useNode,
-  useUpdateNode,
-  useDeleteNode,
-} from "../hooks/useNodes";
+import { useNode, useUpdateNode, useDeleteNode } from "../hooks/useNodes";
+import { MergeNodeModal } from "./node-detail/MergeNodeModal";
+import { useCampaign } from "../hooks/useCampaigns";
 import {
   useNodeBlocks,
   useCreateBlock,
@@ -19,6 +17,7 @@ import { NodeHeader } from "./node-detail/NodeHeader";
 import { TagsSection } from "./node-detail/TagsSection";
 import { BlocksSection } from "./node-detail/BlocksSection";
 import { AddBlockModal } from "./node-detail/AddBlockModal";
+import { EditNodeModal } from "./node-detail/EditNodeModal";
 import { ParentBreadcrumbs } from "./node-detail/ParentBreadcrumbs";
 import { NodeDetailsAndLinks } from "./node-detail/NodeDetailsAndLinks";
 import type { NodeType } from "../types";
@@ -86,6 +85,7 @@ export function NodeDetailPage() {
   // --------------------------------------------------------------------------
 
   const { data: node, isLoading, error } = useNode(nodeId!);
+  const { data: campaign } = useCampaign(campaignId!);
 
   // Blocks are the free-form content attached to this node.
   const { data: blocks } = useNodeBlocks(nodeId!);
@@ -105,6 +105,9 @@ export function NodeDetailPage() {
   // --------------------------------------------------------------------------
 
   const [showAddBlock, setShowAddBlock] = useState(false);
+  const [showEditNode, setShowEditNode] = useState(false);
+  const [showMergeNode, setShowMergeNode] = useState(false);
+  const [mergeSuccess, setMergeSuccess] = useState(false);
 
   // --------------------------------------------------------------------------
   // Guards
@@ -122,10 +125,17 @@ export function NodeDetailPage() {
     return <ErrorMessage message={error?.message || "Node not found"} />;
   }
 
-  // Permission checks: the creator of the node and the campaign DM can edit.
+  // Permission checks: the creator of the node and the campaign DM can edit
+  // core fields; Loremasters may edit type-specific details as well.
   const isOwner = node.ownerId === user?.id;
   const isDm = node.campaign?.dmId === user?.id;
+  const isLoremaster =
+    campaign?.members.some(
+      (m) => m.userId === user?.id && m.role === "LOREMASTER",
+    ) ?? false;
   const canEdit = isOwner || isDm;
+  const canEditDetails = isOwner || isDm || isLoremaster;
+  const canMerge = (isDm || isLoremaster) && node.visibility === "PUBLIC";
 
   /**
    * Confirms and then deletes the current node. On success, redirects back to
@@ -145,6 +155,22 @@ export function NodeDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Merge success banner */}
+      {mergeSuccess && (
+        <div className="rounded-lg bg-success-subtle p-4 text-success dark:bg-success-subtle dark:text-success">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Merge successful.</p>
+            <button
+              onClick={() => setMergeSuccess(false)}
+              className="text-sm font-medium hover:underline"
+              aria-label="Dismiss"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Back link to the filtered list for this node type */}
       <button
         onClick={() => navigate(`/campaigns/${campaignId}?type=${node.type}`)}
@@ -153,16 +179,11 @@ export function NodeDetailPage() {
         ← Back to {typeLabel}s
       </button>
 
-      {/* Title, type badge, visibility badge, and delete action */}
+      {/* Title, type badge, visibility badge, and edit trigger */}
       <NodeHeader
         node={node}
-        canEdit={canEdit}
-        canDelete={canEdit}
-        onUpdateTitle={async (title) => {
-          await updateNode.mutateAsync({ title });
-        }}
-        onDelete={handleDelete}
-        isUpdating={updateNode.isPending}
+        canEdit={canEdit || canMerge}
+        onEdit={() => setShowEditNode(true)}
       />
 
       {/* Breadcrumb trail of ancestor nodes (e.g. Westbridge › The Rusty Anchor). */}
@@ -173,26 +194,31 @@ export function NodeDetailPage() {
       />
 
       {/* Shared collapsible panel: Details (main) + Links (sidebar). */}
-      <NodeDetailsAndLinks node={node} campaignId={campaignId!} blocks={blocks} />
+      <NodeDetailsAndLinks
+        node={node}
+        campaignId={campaignId!}
+        blocks={blocks}
+        canEditDetails={canEditDetails}
+      />
 
       {/* Blocks: free-form content attached to the node (the main feature). */}
       <section className="rounded-xl border border-transparent bg-card-bg p-4 md:p-6 ">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-primary">
+          {/* <h2 className="text-lg font-semibold text-primary">
             Blocks
-          </h2>
+          </h2> */}
           <button
             onClick={() => setShowAddBlock(true)}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
           >
-            + Add Block
+            + Add Note Block
           </button>
         </div>
         <BlocksSection
           blocks={blocks || []}
-          canEdit={canEdit}
           currentUserId={user?.id || ""}
           isDm={isDm}
+          isLoremaster={isLoremaster}
           onEdit={async (blockId, content, visibility) => {
             await updateBlock.mutateAsync({
               blockId,
@@ -202,8 +228,6 @@ export function NodeDetailPage() {
           onDelete={(blockId) => {
             if (confirm("Delete this block?")) deleteBlock.mutate(blockId);
           }}
-          campaignId={campaignId!}
-          nodeId={nodeId!}
         />
       </section>
 
@@ -240,8 +264,36 @@ export function NodeDetailPage() {
           }}
           onClose={() => setShowAddBlock(false)}
           isPending={createBlock.isPending}
+        />
+      )}
+
+      {/* Edit Node modal */}
+      {showEditNode && (
+        <EditNodeModal
+          node={node}
+          canEdit={canEdit}
+          canMerge={canMerge}
+          onUpdate={async (data) => {
+            await updateNode.mutateAsync(data);
+          }}
+          onDelete={handleDelete}
+          onMerge={() => {
+            setShowEditNode(false);
+            setMergeSuccess(false);
+            setShowMergeNode(true);
+          }}
+          onClose={() => setShowEditNode(false)}
+          isUpdating={updateNode.isPending}
+        />
+      )}
+
+      {/* Merge Node modal */}
+      {showMergeNode && (
+        <MergeNodeModal
+          primaryNode={node}
           campaignId={campaignId!}
-          nodeId={nodeId!}
+          onClose={() => setShowMergeNode(false)}
+          onSuccess={() => setMergeSuccess(true)}
         />
       )}
     </div>

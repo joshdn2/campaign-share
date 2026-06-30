@@ -49,18 +49,16 @@ export function NodeTagInsert({
   // Close dropdown when clicking outside.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Reset highlight when suggestions change.
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [suggestions]);
 
   const openSearch = () => {
     setIsOpen(true);
@@ -77,16 +75,24 @@ export function NodeTagInsert({
     if (!textarea) return;
 
     const cursor = textarea.selectionStart ?? content.length;
-    const updated = insertTagAtCursor(content, cursor, suggestion.id, suggestion.title);
+    const updated = insertTagAtCursor(
+      content,
+      cursor,
+      suggestion.id,
+      suggestion.title,
+    );
     onChange(updated);
 
     setIsOpen(false);
     setQuery("");
+    setHighlightedIndex(-1);
 
     // Return focus to the textarea and place the cursor after the inserted tag.
     setTimeout(() => {
       textarea.focus();
-      const newCursor = cursor + insertTagAtCursor("", 0, suggestion.id, suggestion.title).length;
+      const newCursor =
+        cursor +
+        insertTagAtCursor("", 0, suggestion.id, suggestion.title).length;
       textarea.setSelectionRange(newCursor, newCursor);
     }, 0);
   };
@@ -107,7 +113,9 @@ export function NodeTagInsert({
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        setHighlightedIndex(
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+        );
         break;
       case "Enter":
         e.preventDefault();
@@ -131,7 +139,7 @@ export function NodeTagInsert({
         title="Tag a node"
         aria-label="Tag a node"
       >
-        @
+        Tag a node
       </button>
 
       {isOpen && (
@@ -139,7 +147,10 @@ export function NodeTagInsert({
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setHighlightedIndex(-1);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Tag node..."
             className="w-full border-b border-subtle px-3 py-2 text-sm focus:outline-none dark:border-subtle dark:bg-surface dark:text-primary"

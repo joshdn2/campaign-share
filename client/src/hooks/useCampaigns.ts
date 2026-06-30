@@ -117,7 +117,11 @@ export function useDeleteCampaign() {
 export function useAddMember(campaignId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { email: string; role: "PLAYER" | "LOREMASTER" }) => {
+    mutationFn: async (data: {
+      identifier: string;
+      identifierType: "email" | "username";
+      role: "PLAYER" | "LOREMASTER";
+    }) => {
       const res = await api.post<CampaignMember>(`/campaigns/${campaignId}/members`, data);
       return res.data;
     },

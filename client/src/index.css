@@ -24,6 +24,13 @@
   }
 }
 
+html,
+body,
+#root {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
 #root {
   width: 100%;
   max-width: 100%;

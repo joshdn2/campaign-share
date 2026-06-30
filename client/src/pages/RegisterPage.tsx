@@ -13,7 +13,7 @@ import { useAuthStore } from "../stores/authStore";
  * Route: /register
  *
  * Responsibilities:
- *  - Collect display name, email, and password.
+ *  - Collect username, email, and password.
  *  - Register the user via `/auth/register`.
  *  - Immediately log the user in with the same credentials via `/auth/login`.
  *  - Fetch the current user from `/auth/me` and store it in auth state.
@@ -25,7 +25,7 @@ import { useAuthStore } from "../stores/authStore";
  * RegisterPage – renders the account-creation form.
  *
  * State:
- *  - displayName / email / password: controlled form inputs
+ *  - username / email / password: controlled form inputs
  *  - error: inline error message string
  *  - loading: disables the submit button while the request is in flight
  */
@@ -36,7 +36,7 @@ export function RegisterPage() {
   const { setUser } = useAuthStore();
 
   // Form input state.
-  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -60,7 +60,7 @@ export function RegisterPage() {
     setLoading(true);
 
     try {
-      await api.post("/auth/register", { displayName, email, password });
+      await api.post("/auth/register", { username, email, password });
       await api.post("/auth/login", { email, password });
       const me = await api.get("/auth/me");
       setUser(me.data.user);
@@ -98,13 +98,17 @@ export function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-primary dark:text-secondary">
-              Display Name
+              Username
             </label>
             <input
               type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
+              minLength={3}
+              maxLength={30}
+              pattern="^[a-zA-Z0-9_-]+$"
+              title="Username can only contain letters, numbers, underscores, and hyphens"
               className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
           </div>

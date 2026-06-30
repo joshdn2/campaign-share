@@ -10,20 +10,24 @@
  * handlers strongly typed inputs without duplicating shape definitions.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.calendarDateSchema = exports.campaignCalendarSchema = exports.reorderBlocksSchema = exports.updateBlockSchema = exports.createBlockSchema = exports.blockTypeSchema = exports.createNodeLinkSchema = exports.updateNodeSchema = exports.createNodeSchema = exports.visibilitySchema = exports.nodeTypeSchema = exports.updateMemberSchema = exports.addMemberSchema = exports.updateCampaignSchema = exports.createCampaignSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.calendarDateSchema = exports.campaignCalendarSchema = exports.reorderBlocksSchema = exports.updateBlockSchema = exports.createBlockSchema = exports.blockTypeSchema = exports.mergeNodeSchema = exports.createNodeLinkSchema = exports.updateNodeSchema = exports.createNodeSchema = exports.visibilitySchema = exports.nodeTypeSchema = exports.updateMemberSchema = exports.addMemberSchema = exports.updateCampaignSchema = exports.createCampaignSchema = exports.updateUserSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 // ─── Auth ─────────────────────────────────────────────
 /**
  * Validates registration payloads.
  *
  * - email: must be a valid email address.
+ * - username: 3-30 characters, letters/numbers/underscores/hyphens only.
  * - password: minimum 6 characters.
- * - displayName: non-empty, max 50 characters.
  */
 exports.registerSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
+    username: zod_1.z
+        .string()
+        .min(3)
+        .max(30)
+        .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
     password: zod_1.z.string().min(6),
-    displayName: zod_1.z.string().min(1).max(50),
 });
 /**
  * Validates login payloads.
@@ -34,6 +38,20 @@ exports.registerSchema = zod_1.z.object({
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
     password: zod_1.z.string().min(1),
+});
+/**
+ * Validates a request to update the current user's profile.
+ *
+ * All fields are optional because PATCH updates are partial.
+ * - username: 3-30 characters, letters/numbers/underscores/hyphens only.
+ */
+exports.updateUserSchema = zod_1.z.object({
+    username: zod_1.z
+        .string()
+        .min(3)
+        .max(30)
+        .regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens")
+        .optional(),
 });
 // ─── Campaigns ────────────────────────────────────────
 /**
@@ -62,7 +80,8 @@ exports.updateCampaignSchema = zod_1.z.object({
  * - role: either PLAYER or LOREMASTER; defaults to PLAYER when omitted.
  */
 exports.addMemberSchema = zod_1.z.object({
-    email: zod_1.z.string().email(),
+    identifierType: zod_1.z.enum(["email", "username"]),
+    identifier: zod_1.z.string().min(1),
     role: zod_1.z.enum(["PLAYER", "LOREMASTER"]).default("PLAYER"),
 });
 /**
@@ -92,7 +111,7 @@ exports.nodeTypeSchema = zod_1.z.enum([
  *
  * - PUBLIC: visible to all campaign members.
  * - PRIVATE: visible only to the author/owner.
- * - DM_ONLY: visible only to the Dungeon Master.
+ * - DM_ONLY: visible to the Dungeon Master and, for blocks, the block author.
  */
 exports.visibilitySchema = zod_1.z.enum(["PRIVATE", "PUBLIC", "DM_ONLY"]);
 /**
@@ -137,6 +156,20 @@ exports.createNodeLinkSchema = zod_1.z.object({
     targetId: zod_1.z.string().uuid(),
     label: zod_1.z.string().max(30).optional(),
 });
+/**
+ * Validates a request to merge another node into the requested node.
+ *
+ * - secondaryId: UUID of the node that will be absorbed and deleted.
+ * - choices: per-field resolution of which node's value to keep.
+ */
+exports.mergeNodeSchema = zod_1.z.object({
+    secondaryId: zod_1.z.string().uuid(),
+    choices: zod_1.z.object({
+        title: zod_1.z.enum(["primary", "secondary"]).optional(),
+        excerpt: zod_1.z.enum(["primary", "secondary"]).optional(),
+        details: zod_1.z.record(zod_1.z.string(), zod_1.z.enum(["primary", "secondary"])).default({}),
+    }),
+});
 // ─── Blocks ───────────────────────────────────────────
 /**
  * Allowed block types for node content.
@@ -144,11 +177,11 @@ exports.createNodeLinkSchema = zod_1.z.object({
  * Blocks represent the structured content inside a node (plain text, rich
  * text, or an image).
  */
-exports.blockTypeSchema = zod_1.z.enum(["TEXT", "RICH_TEXT", "IMAGE"]);
+exports.blockTypeSchema = zod_1.z.enum(["RICH_TEXT", "IMAGE"]);
 /**
  * Validates a request to create a content block on a node.
  *
- * - type: TEXT, RICH_TEXT, or IMAGE.
+ * - type: RICH_TEXT or IMAGE.
  * - content: flexible payload depending on block type.
  * - visibility: defaults to PUBLIC.
  * - ordering: optional explicit sort position.

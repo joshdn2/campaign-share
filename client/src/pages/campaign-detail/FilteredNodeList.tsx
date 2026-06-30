@@ -45,24 +45,22 @@ export function FilteredNodeList({
   );
 
   return (
-    <section className="rounded-xl border border-transparent bg-card-bg p-4 md:p-6 ">
+    <section className="rounded-xl border border-transparent">
+      <button
+        onClick={onClear}
+        className="text-sm text-accent hover:underline dark:text-accent mb-2"
+      >
+        ← Back to campaign
+      </button>
       {/* Header with create/back actions */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-primary">
-          {label}s
-        </h2>
+        <h2 className="text-lg font-semibold text-primary">{label}s</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={onCreate}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
           >
             + Create {label}
-          </button>
-          <button
-            onClick={onClear}
-            className="rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface dark:bg-surface dark:text-secondary dark:hover:bg-surface"
-          >
-            Back
           </button>
         </div>
       </div>
@@ -78,9 +76,7 @@ export function FilteredNodeList({
             className="flex w-full items-center justify-between rounded-lg border border-transparent bg-item-bg p-3 text-left transition-colors hover:bg-accent-subtle"
           >
             <div>
-              <span className="font-medium text-primary">
-                {node.title}
-              </span>
+              <span className="font-medium text-primary">{node.title}</span>
               {node.excerpt && (
                 <p className="mt-0.5 line-clamp-1 text-xs text-muted dark:text-secondary">
                   {node.excerpt}

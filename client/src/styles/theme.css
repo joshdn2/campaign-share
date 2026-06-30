@@ -5,16 +5,18 @@
  *
  * This file defines the color palette used by Tailwind utility classes.
  * Light mode is the default; dark mode is activated by `data-theme="dark"`
- * on the document element. The accent hue is configurable via the
- * `--accent-hue` property so users can shift the brand color sitewide.
+ * on the document element. The accent color is configurable via the
+ * `--accent-hue` and `--accent-saturation` properties so users can shift the
+ * brand color sitewide.
  */
 
 :root {
-  /* Accent (configurable hue) */
+  /* Accent (configurable hue/saturation) */
   --accent-hue: 217;
-  --accent: hsl(var(--accent-hue), 80%, 55%);
-  --accent-hover: hsl(var(--accent-hue), 80%, 45%);
-  --accent-subtle: hsla(var(--accent-hue), 80%, 55%, 0.15);
+  --accent-saturation: 80%;
+  --accent: hsl(var(--accent-hue), var(--accent-saturation), 55%);
+  --accent-hover: hsl(var(--accent-hue), var(--accent-saturation), 45%);
+  --accent-subtle: hsla(var(--accent-hue), var(--accent-saturation), 55%, 0.15);
   --text-on-accent: #ffffff;
 
   /* Backgrounds (light) */
@@ -37,10 +39,10 @@
    * These are tinted slightly with the accent hue but kept very desaturated
    * so they feel like part of the theme without becoming colorful.
    */
-  --card-bg: hsla(var(--accent-hue), 20%, 96%, 0.65);
-  --item-bg: hsla(var(--accent-hue), 20%, 97%, 0.85);
-  --sidebar-bg: hsla(var(--accent-hue), 15%, 94%, 0.8);
-  --navbar-bg: hsla(var(--accent-hue), 15%, 94%, 0.9);
+  --card-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.25), 96%, 0.65);
+  --item-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.25), 97%, 0.85);
+  --sidebar-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.1875), 94%, 1);
+  --navbar-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.1875), 94%, 0.9);
 
   /* Status colors */
   --danger: #ef4444;
@@ -53,6 +55,83 @@
   --warning: #eab308;
   --warning-hover: #ca8a04;
   --warning-subtle: rgba(234, 179, 8, 0.15);
+}
+
+/**
+ * TipTap rich-text content styles.
+ *
+ * Applied to both the editor surface and the read-only renderer so headings,
+ * lists, and emphasis render consistently.
+ */
+.rich-text h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text p {
+  margin-bottom: 0.5rem;
+}
+
+.rich-text p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.rich-text ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.rich-text li {
+  margin-bottom: 0.25rem;
+}
+
+.rich-text li:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text strong {
+  font-weight: 700;
+}
+
+.rich-text em {
+  font-style: italic;
+}
+
+.rich-text blockquote {
+  border-left: 3px solid var(--border-default);
+  padding-left: 0.75rem;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+.rich-text code {
+  background-color: var(--bg-inset);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+}
+
+.rich-text pre {
+  background-color: var(--bg-inset);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.rich-text pre code {
+  background-color: transparent;
+  padding: 0;
 }
 
 [data-theme="dark"] {
@@ -77,8 +156,8 @@
    * List items are a bit brighter and less transparent so individual rows
    * still read as separate surfaces.
    */
-  --card-bg: hsla(var(--accent-hue), 12%, 22%, 0.55);
-  --item-bg: hsla(var(--accent-hue), 12%, 28%, 0.75);
-  --sidebar-bg: hsla(var(--accent-hue), 8%, 14%, 0.85);
-  --navbar-bg: hsla(var(--accent-hue), 8%, 14%, 0.9);
+  --card-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.15), 22%, 0.55);
+  --item-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.15), 28%, 0.75);
+  --sidebar-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.1), 14%, 1);
+  --navbar-bg: hsla(var(--accent-hue), calc(var(--accent-saturation) * 0.1), 14%, 0.9);
 }

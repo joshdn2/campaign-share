@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CalendarDatePicker } from "../../components/calendar/CalendarDatePicker";
-import { getDefaultCalendarDate } from "../../lib/calendar";
-import type { CampaignCalendar, CalendarDate, Node, NodeType } from "../../types";
+import { absoluteDayForDate } from "../../lib/calendar";
+import type { CampaignCalendar, CalendarDate, NodeType } from "../../types";
 
 /**
  * ============================================================================
@@ -9,15 +9,14 @@ import type { CampaignCalendar, CalendarDate, Node, NodeType } from "../../types
  * ============================================================================
  *
  * Modal dialog for creating a new node. For SESSION nodes, optional start/end
- * dates can be picked from the campaign calendar. The start date is prefilled
- * with the end date of the most recently created session, if one exists.
+ * dates can be picked from the campaign calendar. Dates are optional; if a
+ * start date is chosen, the end date is prefilled to match.
  */
 
 interface Props {
   label: string;
   type?: NodeType;
   calendar?: CampaignCalendar;
-  nodes?: Node[];
   onCreate: (data: {
     title: string;
     excerpt: string;
@@ -32,44 +31,62 @@ export function CreateNodeModal({
   label,
   type,
   calendar,
-  nodes,
   onCreate,
   onClose,
   isPending,
 }: Props) {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
 
-  const defaultStartDate = useMemo(() => {
-    if (!calendar) return null;
-
-    // Most recently created session (by node createdAt), if any.
-    const sessionNodes = (nodes ?? []).filter((n) => n.type === "SESSION");
-    const sorted = [...sessionNodes].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    for (const session of sorted) {
-      const detail = session.sessionDetail;
-      if (!detail?.endDateMonthId) continue;
-      return {
-        ageId: detail.endDateAgeId!,
-        year: detail.endDateYear!,
-        monthId: detail.endDateMonthId!,
-        day: detail.endDateDay!,
-      };
-    }
-
-    return getDefaultCalendarDate(calendar, sessionNodes);
-  }, [calendar, nodes]);
-
-  const [startDate, setStartDate] = useState<CalendarDate | null>(defaultStartDate);
-  const [endDate, setEndDate] = useState<CalendarDate | null>(defaultStartDate);
+  const [startDate, setStartDate] = useState<CalendarDate | null>(null);
+  const [endDate, setEndDate] = useState<CalendarDate | null>(null);
 
   const showDates = type === "SESSION" && calendar != null;
 
+  const handleStartDateChange = (value: CalendarDate | null) => {
+    setDateError(null);
+    setStartDate(value);
+    if (value == null) {
+      // If start date is cleared, keep end date as-is so the user can still
+      // have an end-only date (which validation below will reject).
+      return;
+    }
+    if (endDate == null) {
+      setEndDate(value);
+    } else if (calendar) {
+      const startAbs = absoluteDayForDate(calendar, value);
+      const endAbs = absoluteDayForDate(calendar, endDate);
+      if (startAbs != null && endAbs != null && endAbs < startAbs) {
+        setEndDate(value);
+      }
+    }
+  };
+
+  const handleEndDateChange = (value: CalendarDate | null) => {
+    setDateError(null);
+    setEndDate(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDateError(null);
+
+    if (showDates && calendar) {
+      if (endDate != null && startDate == null) {
+        setDateError("A start date is required when an end date is set.");
+        return;
+      }
+      if (startDate && endDate) {
+        const startAbs = absoluteDayForDate(calendar, startDate);
+        const endAbs = absoluteDayForDate(calendar, endDate);
+        if (startAbs != null && endAbs != null && endAbs < startAbs) {
+          setDateError("End date cannot be before the start date.");
+          return;
+        }
+      }
+    }
+
     await onCreate({
       title,
       excerpt,
@@ -83,13 +100,14 @@ export function CreateNodeModal({
     onClose();
     setTitle("");
     setExcerpt("");
-    setStartDate(defaultStartDate);
-    setEndDate(defaultStartDate);
+    setDateError(null);
+    setStartDate(null);
+    setEndDate(null);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-md rounded-xl bg-card-bg p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-elevated p-6 shadow-xl">
         <h2 className="mb-4 text-lg font-bold text-primary">
           New {label}
         </h2>
@@ -121,18 +139,24 @@ export function CreateNodeModal({
           {showDates && (
             <div className="space-y-3 rounded-lg border border-transparent bg-item-bg p-3">
               <p className="text-xs text-muted dark:text-secondary">
-                Dates are optional. Start date is prefilled from the most recent session.
+                Dates are optional. Setting a start date will prefill the end
+                date to the same day.
               </p>
+              {dateError && (
+                <p className="rounded bg-danger-subtle px-2 py-1 text-xs text-danger dark:bg-danger-subtle dark:text-danger">
+                  {dateError}
+                </p>
+              )}
               <CalendarDatePicker
                 calendar={calendar}
                 value={startDate}
-                onChange={setStartDate}
+                onChange={handleStartDateChange}
                 label="Start Date"
               />
               <CalendarDatePicker
                 calendar={calendar}
                 value={endDate}
-                onChange={setEndDate}
+                onChange={handleEndDateChange}
                 label="End Date"
               />
             </div>

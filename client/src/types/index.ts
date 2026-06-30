@@ -3,7 +3,7 @@
 export interface User {
   id: string;
   email: string;
-  displayName: string;
+  username: string;
 }
 
 export interface AuthState {
@@ -23,7 +23,7 @@ export type NodeType =
   | "LOCATION"
   | "NOTE"
   | "FACTION";
-export type BlockType = "TEXT" | "RICH_TEXT" | "IMAGE";
+export type BlockType = "RICH_TEXT" | "IMAGE";
 export type LocationType =
   | "REGION"
   | "CITY"
@@ -225,7 +225,7 @@ export interface Node {
   metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
-  owner: { id: string; displayName: string };
+  owner: { id: string; username: string };
   campaign?: { id: string; name: string; dmId: string };
   parent?: { id: string; title: string; type: NodeType } | null;
   ancestors?: { id: string; title: string; type: NodeType }[];
@@ -255,7 +255,7 @@ export interface NodeBlock {
   visibility: Visibility;
   createdAt: string;
   updatedAt: string;
-  author: { id: string; displayName: string };
+  author: { id: string; username: string };
 }
 
 // ─── Search ───────────────────────────────────────────

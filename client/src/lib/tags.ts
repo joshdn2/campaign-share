@@ -3,10 +3,10 @@
  *
  * Shared helpers for the block tagging feature.
  *
- * Tags are stored inline in TEXT block content using a lightweight markdown-like
- * syntax: @[Node Title](node-id). These functions extract tags from raw text,
- * insert a tag at a cursor position, and render tagged text as a React tree of
- * clickable links.
+ * Tags are stored inline in RICH_TEXT block content using a lightweight
+ * markdown-like syntax: @[Node Title](node-id). These functions extract tags
+ * from raw text, insert a tag at a cursor position, and render tagged text as a
+ * React tree of clickable links.
  */
 
 import type { ReactNode } from "react";
@@ -69,6 +69,34 @@ export function insertTagAtCursor(
 ): string {
   const tag = buildNodeTag(nodeId, title);
   return text.slice(0, cursor) + tag + text.slice(cursor);
+}
+
+/**
+ * Recursively collect all plain text from a TipTap JSON document.
+ */
+function extractTextFromTipTapJSON(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  if (Array.isArray(node)) {
+    return node.map(extractTextFromTipTapJSON).join("");
+  }
+  const n = node as Record<string, unknown>;
+  if (n.type === "text" && typeof n.text === "string") {
+    return n.text;
+  }
+  if (Array.isArray(n.content)) {
+    return extractTextFromTipTapJSON(n.content);
+  }
+  return "";
+}
+
+/**
+ * Extract node tags from a RICH_TEXT block's TipTap JSON content.
+ */
+export function extractNodeTagsFromRichText(
+  content: Record<string, unknown>,
+): Array<{ nodeId: string; title: string }> {
+  const text = extractTextFromTipTapJSON(content.content);
+  return extractNodeTags(text);
 }
 
 /**

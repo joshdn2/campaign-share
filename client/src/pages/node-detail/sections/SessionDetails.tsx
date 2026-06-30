@@ -1,130 +1,88 @@
-/**
- * SessionDetails.tsx
- *
- * Detail section for SESSION nodes. Displays the session number, dates, and
- * description in a compact header row, with an inline date editor.
- */
-
-import { useState, useMemo } from "react";
-import type { Node, CalendarDate } from "../../../types";
-import { useAuthStore } from "../../../stores/authStore";
+import { useState } from "react";
+import type { Node, CalendarDate, CampaignCalendar } from "../../../types";
 import { useCalendar } from "../../../hooks/useCalendars";
-import { useCampaignNodes } from "../../../hooks/useNodes";
 import { useUpdateNode } from "../../../hooks/useNodes";
 import { CalendarDatePicker } from "../../../components/calendar/CalendarDatePicker";
 import {
   absoluteDayForDate,
   formatCalendarDate,
   formatCalendarDateNoAge,
-  getDefaultCalendarDate,
 } from "../../../lib/calendar";
+import type { DetailSectionProps } from "../NodeDetailsAndLinks";
+import { TextArea } from "./DetailFields";
 
-interface Props {
-  node: Node;
-}
+/**
+ * ============================================================================
+ * node-detail/sections/SessionDetails.tsx
+ * ============================================================================
+ *
+ * Detail section for SESSION nodes. Displays the session number, in-world dates,
+ * real-world date, description, and summaries. Users with permission can toggle
+ * edit mode to update the fields.
+ */
 
 function toCalendarDate(
   detail: Node["sessionDetail"],
   field: "startDate" | "endDate",
 ): CalendarDate | null {
   if (!detail) return null;
-  const ageId =
-    field === "startDate" ? detail.startDateAgeId : detail.endDateAgeId;
-  const year =
-    field === "startDate" ? detail.startDateYear : detail.endDateYear;
-  const monthId =
-    field === "startDate" ? detail.startDateMonthId : detail.endDateMonthId;
+  const ageId = field === "startDate" ? detail.startDateAgeId : detail.endDateAgeId;
+  const year = field === "startDate" ? detail.startDateYear : detail.endDateYear;
+  const monthId = field === "startDate" ? detail.startDateMonthId : detail.endDateMonthId;
   const day = field === "startDate" ? detail.startDateDay : detail.endDateDay;
   if (!ageId || year == null || !monthId || day == null) return null;
   return { ageId, year, monthId, day };
 }
 
-export function SessionDetails({ node }: Props) {
-  const { user } = useAuthStore();
-  const [isEditing, setIsEditing] = useState(false);
+function toDateInputValue(date: string | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().split("T")[0];
+}
 
+export function SessionDetails({ node, isEditing, onDone }: DetailSectionProps) {
   const campaignId = node.campaignId ?? "";
   const { data: calendar } = useCalendar(campaignId);
-  const { data: campaignNodes } = useCampaignNodes(campaignId);
-  const updateNode = useUpdateNode(node.id);
-
-  const sessions = useMemo(
-    () => (campaignNodes ?? []).filter((n) => n.type === "SESSION"),
-    [campaignNodes],
-  );
-
-  const isOwner = node.ownerId === user?.id;
-  const isDm = node.campaign?.dmId === user?.id;
-  const canEdit = isOwner || isDm;
 
   const startDate = toCalendarDate(node.sessionDetail, "startDate");
   const endDate = toCalendarDate(node.sessionDetail, "endDate");
 
-  const handleSave = async (
-    start: CalendarDate | null,
-    end: CalendarDate | null,
-  ) => {
-    await updateNode.mutateAsync({
-      details: {
-        startDateAgeId: start?.ageId ?? null,
-        startDateYear: start?.year ?? null,
-        startDateMonthId: start?.monthId ?? null,
-        startDateDay: start?.day ?? null,
-        endDateAgeId: end?.ageId ?? null,
-        endDateYear: end?.year ?? null,
-        endDateMonthId: end?.monthId ?? null,
-        endDateDay: end?.day ?? null,
-      },
-    });
-    setIsEditing(false);
-  };
+  if (isEditing) {
+    if (!calendar) {
+      return (
+        <p className="text-sm text-muted dark:text-secondary">
+          Loading calendar...
+        </p>
+      );
+    }
+    return (
+      <SessionEditForm
+        node={node}
+        calendar={calendar}
+        onDone={onDone}
+      />
+    );
+  }
 
   return (
     <div className="space-y-3 text-sm text-muted dark:text-secondary">
-      {/* Header row: session number, dates, and edit toggle */}
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          {node.sessionDetail && (
-            <span className="font-semibold text-primary">
-              Session #{node.sessionDetail.sessionNumber}
-            </span>
-          )}
+      {/* Header row: session number and dates */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        {node.sessionDetail && (
+          <span className="font-semibold text-primary">
+            Session #{node.sessionDetail.sessionNumber}
+          </span>
+        )}
 
-          {calendar && (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span>
-                <span className="font-medium">Date:</span>{" "}
-                {formatCalendarDateNoAge(calendar, startDate)} -{" "}
-                {formatCalendarDate(calendar, endDate)}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {calendar && canEdit && !isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="rounded-md p-1 text-accent hover:bg-accent-subtle dark:text-accent dark:hover:bg-accent-subtle"
-            title="Edit dates"
-            aria-label="Edit dates"
-          >
-            ✏️
-          </button>
+        {calendar && (
+          <span>
+            <span className="font-medium">Date:</span>{" "}
+            {formatCalendarDateNoAge(calendar, startDate)} -{" "}
+            {formatCalendarDate(calendar, endDate)}
+          </span>
         )}
       </div>
-
-      {/* Inline date editor */}
-      {isEditing && calendar && (
-        <SessionDateEditor
-          calendar={calendar}
-          sessions={sessions}
-          initialStart={startDate}
-          initialEnd={endDate}
-          onSave={handleSave}
-          onCancel={() => setIsEditing(false)}
-          isPending={updateNode.isPending}
-        />
-      )}
 
       {/* Description */}
       {node.excerpt && (
@@ -162,83 +120,145 @@ export function SessionDetails({ node }: Props) {
   );
 }
 
-interface EditorProps {
-  calendar: NonNullable<ReturnType<typeof useCalendar>["data"]>;
-  sessions: Node[];
-  initialStart: CalendarDate | null;
-  initialEnd: CalendarDate | null;
-  onSave: (
-    start: CalendarDate | null,
-    end: CalendarDate | null,
-  ) => Promise<void>;
-  onCancel: () => void;
-  isPending: boolean;
+interface SessionEditFormProps {
+  node: Node;
+  calendar: CampaignCalendar;
+  onDone: () => void;
 }
 
-function SessionDateEditor({
-  calendar,
-  sessions,
-  initialStart,
-  initialEnd,
-  onSave,
-  onCancel,
-  isPending,
-}: EditorProps) {
-  const defaultDate = useMemo(
-    () => getDefaultCalendarDate(calendar, sessions),
-    [calendar, sessions],
-  );
+type SessionForm = {
+  startDate: CalendarDate | null;
+  endDate: CalendarDate | null;
+  sessionDate: string;
+  shortSummary: string;
+  longSummary: string;
+  excerpt: string;
+};
 
-  const [start, setStart] = useState<CalendarDate>(initialStart ?? defaultDate);
-  const [end, setEnd] = useState<CalendarDate>(initialEnd ?? defaultDate);
-  const [error, setError] = useState<string | null>(null);
+function SessionEditForm({ node, calendar, onDone }: SessionEditFormProps) {
+  const updateNode = useUpdateNode(node.id);
+  const [form, setForm] = useState<SessionForm>(() => ({
+    startDate: toCalendarDate(node.sessionDetail, "startDate"),
+    endDate: toCalendarDate(node.sessionDetail, "endDate"),
+    sessionDate: toDateInputValue(node.sessionDetail?.sessionDate),
+    shortSummary: node.sessionDetail?.shortSummary ?? "",
+    longSummary: node.sessionDetail?.longSummary ?? "",
+    excerpt: node.excerpt ?? "",
+  }));
+  const [dateError, setDateError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    setError(null);
-    const startAbs = absoluteDayForDate(calendar, start);
-    const endAbs = absoluteDayForDate(calendar, end);
-    if (startAbs != null && endAbs != null && endAbs < startAbs) {
-      setError("End date cannot be before the start date.");
+  const handleStartDateChange = (value: CalendarDate | null) => {
+    setDateError(null);
+    setForm((f) => {
+      if (value == null) {
+        return { ...f, startDate: null };
+      }
+      if (f.endDate == null) {
+        return { ...f, startDate: value, endDate: value };
+      }
+      const startAbs = absoluteDayForDate(calendar, value);
+      const endAbs = absoluteDayForDate(calendar, f.endDate);
+      if (startAbs != null && endAbs != null && endAbs < startAbs) {
+        return { ...f, startDate: value, endDate: value };
+      }
+      return { ...f, startDate: value };
+    });
+  };
+
+  const handleEndDateChange = (value: CalendarDate | null) => {
+    setDateError(null);
+    setForm((f) => ({ ...f, endDate: value }));
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDateError(null);
+
+    if (form.endDate != null && form.startDate == null) {
+      setDateError("A start date is required when an end date is set.");
       return;
     }
-    void onSave(start, end);
+
+    if (form.startDate && form.endDate) {
+      const startAbs = absoluteDayForDate(calendar, form.startDate);
+      const endAbs = absoluteDayForDate(calendar, form.endDate);
+      if (startAbs != null && endAbs != null && endAbs < startAbs) {
+        setDateError("End date cannot be before the start date.");
+        return;
+      }
+    }
+
+    await updateNode.mutateAsync({
+      excerpt: form.excerpt || null,
+      details: {
+        startDateAgeId: form.startDate?.ageId ?? null,
+        startDateYear: form.startDate?.year ?? null,
+        startDateMonthId: form.startDate?.monthId ?? null,
+        startDateDay: form.startDate?.day ?? null,
+        endDateAgeId: form.endDate?.ageId ?? null,
+        endDateYear: form.endDate?.year ?? null,
+        endDateMonthId: form.endDate?.monthId ?? null,
+        endDateDay: form.endDate?.day ?? null,
+        sessionDate: form.sessionDate ? new Date(form.sessionDate).toISOString() : null,
+        shortSummary: form.shortSummary || null,
+        longSummary: form.longSummary || null,
+      },
+    });
+    onDone();
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-transparent bg-item-bg p-3">
-      {error && (
-        <p className="rounded bg-danger-subtle px-2 py-1 text-xs text-danger dark:bg-danger-subtle dark:text-danger">
-          {error}
-        </p>
-      )}
-      <CalendarDatePicker
-        calendar={calendar}
-        value={start}
-        onChange={setStart}
-        label="Start Date"
-      />
-      <CalendarDatePicker
-        calendar={calendar}
-        value={end}
-        onChange={setEnd}
-        label="End Date"
-      />
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="space-y-4 rounded-lg border border-transparent bg-item-bg p-3 text-sm text-muted dark:text-secondary">
+        {dateError && (
+          <p className="rounded bg-danger-subtle px-2 py-1 text-xs text-danger dark:bg-danger-subtle dark:text-danger">
+            {dateError}
+          </p>
+        )}
+        <CalendarDatePicker
+          calendar={calendar}
+          value={form.startDate}
+          onChange={handleStartDateChange}
+          label="Start Date"
+        />
+        <CalendarDatePicker
+          calendar={calendar}
+          value={form.endDate}
+          onChange={handleEndDateChange}
+          label="End Date"
+        />
+        <div>
+          <label className="mb-1 block text-xs font-medium text-primary dark:text-secondary">
+            Real-World Date
+          </label>
+          <input
+            type="date"
+            value={form.sessionDate}
+            onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))}
+            className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
+          />
+        </div>
+        <TextArea label="Description" value={form.excerpt} onChange={(v) => setForm((f) => ({ ...f, excerpt: v }))} />
+        <TextArea label="Short Summary" value={form.shortSummary} onChange={(v) => setForm((f) => ({ ...f, shortSummary: v }))} />
+        <TextArea label="Long Summary" value={form.longSummary} onChange={(v) => setForm((f) => ({ ...f, longSummary: v }))} rows={6} />
+      </div>
       <div className="flex gap-2">
         <button
-          onClick={handleSave}
-          disabled={isPending}
+          type="submit"
+          disabled={updateNode.isPending}
           className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover disabled:opacity-50"
         >
-          {isPending ? "Saving..." : "Save"}
+          {updateNode.isPending ? "Saving..." : "Save"}
         </button>
         <button
-          onClick={onCancel}
-          disabled={isPending}
+          type="button"
+          onClick={onDone}
+          disabled={updateNode.isPending}
           className="rounded-lg px-3 py-1.5 text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
         >
           Cancel
         </button>
       </div>
-    </div>
+    </form>
   );
 }

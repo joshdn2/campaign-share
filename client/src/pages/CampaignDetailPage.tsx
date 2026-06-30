@@ -339,7 +339,6 @@ export function CampaignDetailPage() {
           label={NODE_TYPE_LABELS[createNodeType]}
           type={createNodeType}
           calendar={calendar ?? undefined}
-          nodes={nodes}
           onCreate={handleCreateNode}
           onClose={() => {
             setShowCreateNode(false);

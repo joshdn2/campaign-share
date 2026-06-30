@@ -2,7 +2,7 @@
  * ThemeControls.tsx
  *
  * UI for switching between light, dark, and system themes and picking an
- * accent hue. Used inside the user dropdown in the top navigation bar.
+ * accent color. Used inside the user dropdown in the top navigation bar.
  */
 
 import { useTheme, type ThemeMode } from "./ThemeProvider";
@@ -10,17 +10,18 @@ import { useTheme, type ThemeMode } from "./ThemeProvider";
 interface AccentOption {
   label: string;
   hue: number;
+  saturation: number;
 }
 
 const ACCENTS: AccentOption[] = [
-  { label: "Blue", hue: 217 },
-  { label: "Emerald", hue: 150 },
-  { label: "Violet", hue: 260 },
-  { label: "Rose", hue: 340 },
-  { label: "Amber", hue: 35 },
-  { label: "Cyan", hue: 190 },
-  { label: "Slate", hue: 220 },
-  { label: "Orange", hue: 25 },
+  { label: "Grey", hue: 0, saturation: 0 },
+  { label: "Red", hue: 0, saturation: 80 },
+  { label: "Orange", hue: 25, saturation: 80 },
+  { label: "Yellow", hue: 45, saturation: 80 },
+  { label: "Green", hue: 145, saturation: 80 },
+  { label: "Blue", hue: 217, saturation: 80 },
+  { label: "Purple", hue: 270, saturation: 80 },
+  { label: "Pink", hue: 330, saturation: 80 },
 ];
 
 const MODES: { value: ThemeMode; label: string }[] = [
@@ -30,7 +31,7 @@ const MODES: { value: ThemeMode; label: string }[] = [
 ];
 
 export function ThemeControls() {
-  const { theme, accentHue, setTheme, setAccentHue } = useTheme();
+  const { theme, accentHue, accentSaturation, setTheme, setAccentColor } = useTheme();
 
   return (
     <div className="space-y-4 p-3">
@@ -63,11 +64,11 @@ export function ThemeControls() {
         </h3>
         <div className="grid grid-cols-4 gap-2">
           {ACCENTS.map((accent) => {
-            const isActive = accentHue === accent.hue;
+            const isActive = accentHue === accent.hue && accentSaturation === accent.saturation;
             return (
               <button
-                key={accent.hue}
-                onClick={() => setAccentHue(accent.hue)}
+                key={`${accent.hue}-${accent.saturation}`}
+                onClick={() => setAccentColor({ hue: accent.hue, saturation: accent.saturation })}
                 title={accent.label}
                 className={`flex flex-col items-center gap-1 rounded-md p-1 transition-colors hover:bg-surface ${
                   isActive ? "bg-surface ring-1 ring-accent" : ""
@@ -76,7 +77,7 @@ export function ThemeControls() {
                 <span
                   className="h-6 w-6 rounded-full border border-border-default shadow-sm"
                   style={{
-                    backgroundColor: `hsl(${accent.hue}, 80%, 55%)`,
+                    backgroundColor: `hsl(${accent.hue}, ${accent.saturation}%, 55%)`,
                   }}
                 />
                 <span

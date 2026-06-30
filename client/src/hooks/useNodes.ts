@@ -8,7 +8,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/axios";
-import type { Node } from "../types";
+import { BLOCKS_KEY } from "./useBlocks";
+import type { Node, Visibility } from "../types";
 
 // Shared root query key for all node queries.
 const NODES_KEY = "nodes";
@@ -65,8 +66,8 @@ export function useCreateNode(campaignId: string) {
     mutationFn: async (data: {
       type: string;
       title: string;
-      excerpt?: string;
-      visibility?: string;
+      excerpt?: string | null;
+      visibility?: Visibility;
       parentId?: string;
       details?: Record<string, unknown>;
     }) => {
@@ -94,12 +95,47 @@ export function useUpdateNode(nodeId: string) {
   return useMutation({
     mutationFn: async (data: {
       title?: string;
-      excerpt?: string;
-      visibility?: string;
+      excerpt?: string | null;
+      visibility?: Visibility;
       parentId?: string | null;
       details?: Record<string, unknown>;
     }) => {
       const res = await api.patch<Node>(`/nodes/${nodeId}`, data);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: [NODES_KEY, nodeId] });
+      qc.invalidateQueries({ queryKey: [BLOCKS_KEY, nodeId] });
+      if (data.campaignId) {
+        qc.invalidateQueries({ queryKey: [NODES_KEY, "campaign", data.campaignId] });
+        qc.invalidateQueries({ queryKey: ["campaigns", data.campaignId] });
+      }
+    },
+  });
+}
+
+/**
+ * Merges another node into the requested node.
+ *
+ * @param nodeId - The surviving node id.
+ * @returns A mutation accepting the secondary node id and the user's
+ * per-field choices.
+ *
+ * On success it invalidates the surviving node detail and the campaign's
+ * node list.
+ */
+export function useMergeNode(nodeId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      secondaryId: string;
+      choices: {
+        title?: "primary" | "secondary";
+        excerpt?: "primary" | "secondary";
+        details: Record<string, "primary" | "secondary">;
+      };
+    }) => {
+      const res = await api.post<Node>(`/nodes/${nodeId}/merge`, data);
       return res.data;
     },
     onSuccess: (data) => {

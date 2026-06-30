@@ -64,7 +64,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         )}
 
         {/* Back button appears only when inside a campaign route */}
-        {campaignId && (
+        {/* {campaignId && (
           <button
             onClick={() => navigate("/campaigns")}
             className="hidden rounded-md p-1.5 text-muted hover:bg-surface sm:block dark:text-secondary dark:hover:bg-surface"
@@ -72,14 +72,15 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           >
             ← Back
           </button>
-        )}
+        )}  */}
 
         {/* App title navigates back to the campaigns list */}
         <h1
-          className="cursor-pointer text-base font-bold text-primary md:text-lg"
+          className="cursor-pointer text-base font-bold text-black dark:text-white md:text-lg"
           onClick={() => navigate("/campaigns")}
         >
-          CampaignHub
+          <span className="hidden md:inline">CampaignHub</span>
+          <span className="md:hidden">CH</span>
         </h1>
       </div>
 
@@ -88,7 +89,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <SearchBar campaignId={campaignId} campaignName={campaign?.name} />
       </div>
 
-      {user && <UserMenu displayName={user.displayName} onLogout={logout} />}
+      {user && <UserMenu username={user.username} onLogout={logout} />}
     </header>
   );
 }
@@ -100,10 +101,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
  * outside the menu.
  */
 function UserMenu({
-  displayName,
+  username,
   onLogout,
 }: {
-  displayName: string;
+  username: string;
   onLogout: () => void;
 }) {
   const navigate = useNavigate();
@@ -124,20 +125,46 @@ function UserMenu({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface hover:text-text-primary md:px-3"
       >
-        <span className="hidden md:inline">{displayName}</span>
-        <span className="text-accent md:hidden">☰</span>
+        <span className="hidden md:inline">{username}</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="h-5 w-5 text-accent"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+          />
+        </svg>
         <span className="text-xs text-accent">▾</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border-default bg-surface shadow-lg dark:bg-surface">
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border-default bg-surface shadow-lg dark:bg-surface sm:w-64">
           <div className="border-b border-border-subtle px-3 py-2">
-            <p className="text-sm font-medium text-text-primary">{displayName}</p>
+            <p className="text-sm font-medium text-text-primary">
+              {username}
+            </p>
+          </div>
+          <div className="p-2">
+            <button
+              onClick={() => {
+                navigate("/account");
+                setOpen(false);
+              }}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-text-secondary hover:bg-surface hover:text-text-primary"
+            >
+              My Account
+            </button>
           </div>
           <ThemeControls />
           <div className="border-t border-border-subtle p-2">
@@ -156,6 +183,22 @@ function UserMenu({
       )}
     </div>
   );
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(media.matches);
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
+  }, []);
+
+  return isMobile;
 }
 
 /**
@@ -177,17 +220,26 @@ function SearchBar({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
-  const { data: suggestions, isLoading } = useSearchSuggestions(query, campaignId);
+  const { data: suggestions, isLoading } = useSearchSuggestions(
+    query,
+    campaignId,
+  );
 
-  const placeholder = campaignId
-    ? `Search ${campaignName ?? "this campaign"}...`
-    : "Search all my campaigns";
+  const placeholder = isMobile
+    ? "Search"
+    : campaignId
+      ? `Search ${campaignName ?? "this campaign"}...`
+      : "Search all my campaigns";
 
   // Close the dropdown when clicking outside the search bar.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -195,17 +247,14 @@ function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset highlight when suggestions change.
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [suggestions]);
-
   const goToResults = () => {
     const trimmed = query.trim();
     if (!trimmed) return;
     setIsOpen(false);
     if (campaignId) {
-      navigate(`/campaigns/${campaignId}/search?q=${encodeURIComponent(trimmed)}`);
+      navigate(
+        `/campaigns/${campaignId}/search?q=${encodeURIComponent(trimmed)}`,
+      );
     } else {
       navigate(`/search?q=${encodeURIComponent(trimmed)}`);
     }
@@ -214,6 +263,7 @@ function SearchBar({
   const selectSuggestion = (suggestion: SearchSuggestion) => {
     setIsOpen(false);
     setQuery("");
+    setHighlightedIndex(-1);
     navigate(`/campaigns/${suggestion.campaignId}/nodes/${suggestion.id}`);
   };
 
@@ -233,7 +283,9 @@ function SearchBar({
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+        setHighlightedIndex(
+          (prev) => (prev - 1 + suggestions.length) % suggestions.length,
+        );
         break;
       case "Enter":
         e.preventDefault();
@@ -261,6 +313,7 @@ function SearchBar({
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
+            setHighlightedIndex(-1);
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}

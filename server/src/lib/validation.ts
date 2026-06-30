@@ -17,13 +17,20 @@ import { z } from "zod";
  * Validates registration payloads.
  *
  * - email: must be a valid email address.
+ * - username: 3-30 characters, letters/numbers/underscores/hyphens only.
  * - password: minimum 6 characters.
- * - displayName: non-empty, max 50 characters.
  */
 export const registerSchema = z.object({
   email: z.string().email(),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Username can only contain letters, numbers, underscores, and hyphens",
+    ),
   password: z.string().min(6),
-  displayName: z.string().min(1).max(50),
 });
 
 /**
@@ -35,6 +42,24 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+});
+
+/**
+ * Validates a request to update the current user's profile.
+ *
+ * All fields are optional because PATCH updates are partial.
+ * - username: 3-30 characters, letters/numbers/underscores/hyphens only.
+ */
+export const updateUserSchema = z.object({
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Username can only contain letters, numbers, underscores, and hyphens",
+    )
+    .optional(),
 });
 
 // ─── Campaigns ────────────────────────────────────────
@@ -67,7 +92,8 @@ export const updateCampaignSchema = z.object({
  * - role: either PLAYER or LOREMASTER; defaults to PLAYER when omitted.
  */
 export const addMemberSchema = z.object({
-  email: z.string().email(),
+  identifierType: z.enum(["email", "username"]),
+  identifier: z.string().min(1),
   role: z.enum(["PLAYER", "LOREMASTER"]).default("PLAYER"),
 });
 
@@ -101,7 +127,7 @@ export const nodeTypeSchema = z.enum([
  *
  * - PUBLIC: visible to all campaign members.
  * - PRIVATE: visible only to the author/owner.
- * - DM_ONLY: visible only to the Dungeon Master.
+ * - DM_ONLY: visible to the Dungeon Master and, for blocks, the block author.
  */
 export const visibilitySchema = z.enum(["PRIVATE", "PUBLIC", "DM_ONLY"]);
 
@@ -150,6 +176,22 @@ export const createNodeLinkSchema = z.object({
   label: z.string().max(30).optional(),
 });
 
+/**
+ * Validates a request to merge another node into the requested node.
+ *
+ * - secondaryId: UUID of the node that will be absorbed and deleted.
+ * - choices: per-field resolution of which node's value to keep.
+ */
+export const mergeNodeSchema = z.object({
+  secondaryId: z.string().uuid(),
+  choices: z.object({
+    title: z.enum(["primary", "secondary"]).optional(),
+    excerpt: z.enum(["primary", "secondary"]).optional(),
+    details: z.record(z.string(), z.enum(["primary", "secondary"])).default({}),
+  }),
+});
+export type MergeNodeInput = z.infer<typeof mergeNodeSchema>;
+
 // ─── Blocks ───────────────────────────────────────────
 
 /**
@@ -158,12 +200,12 @@ export const createNodeLinkSchema = z.object({
  * Blocks represent the structured content inside a node (plain text, rich
  * text, or an image).
  */
-export const blockTypeSchema = z.enum(["TEXT", "RICH_TEXT", "IMAGE"]);
+export const blockTypeSchema = z.enum(["RICH_TEXT", "IMAGE"]);
 
 /**
  * Validates a request to create a content block on a node.
  *
- * - type: TEXT, RICH_TEXT, or IMAGE.
+ * - type: RICH_TEXT or IMAGE.
  * - content: flexible payload depending on block type.
  * - visibility: defaults to PUBLIC.
  * - ordering: optional explicit sort position.
@@ -207,6 +249,7 @@ export const reorderBlocksSchema = z.object({
 // Infer strongly typed input interfaces from the Zod schemas above.
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
 export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
 export type AddMemberInput = z.infer<typeof addMemberSchema>;

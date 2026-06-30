@@ -170,7 +170,7 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-card-bg p-6 shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-elevated p-6 shadow-xl">
         <h2 className="mb-4 text-lg font-bold text-primary">
           {calendar ? "Edit Calendar" : "Create Calendar"}
         </h2>

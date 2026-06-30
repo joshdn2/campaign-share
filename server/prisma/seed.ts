@@ -20,7 +20,7 @@ async function main() {
     data: {
       email: "dm@example.com",
       passwordHash: dmPassword,
-      displayName: "The DM",
+      username: "The_DM",
     },
   });
 
@@ -28,7 +28,7 @@ async function main() {
     data: {
       email: "player@example.com",
       passwordHash: playerPassword,
-      displayName: "AragornFan",
+      username: "AragornFan",
     },
   });
 
@@ -224,16 +224,46 @@ async function main() {
       {
         nodeId: session1.id,
         authorId: dm.id,
-        type: BlockType.TEXT,
-        content: { text: "The party arrived at The Rusty Anchor at dusk." },
+        type: BlockType.RICH_TEXT,
+        content: {
+          content: {
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "The party arrived at The Rusty Anchor at dusk.",
+                  },
+                ],
+              },
+            ],
+          },
+        },
         ordering: 0,
         visibility: Visibility.PUBLIC,
       },
       {
         nodeId: session1.id,
         authorId: player.id,
-        type: BlockType.TEXT,
-        content: { text: "I do not trust Elara. Her eye is too sharp." },
+        type: BlockType.RICH_TEXT,
+        content: {
+          content: {
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "I do not trust Elara. Her eye is too sharp.",
+                  },
+                ],
+              },
+            ],
+          },
+        },
         ordering: 1,
         visibility: Visibility.PRIVATE,
       },
@@ -242,8 +272,25 @@ async function main() {
         authorId: dm.id,
         type: BlockType.RICH_TEXT,
         content: {
-          markdown:
-            "## Combat\n\nThree thugs attacked. The party handled them easily.",
+          content: {
+            type: "doc",
+            content: [
+              {
+                type: "heading",
+                attrs: { level: 2 },
+                content: [{ type: "text", text: "Combat" }],
+              },
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "Three thugs attacked. The party handled them easily.",
+                  },
+                ],
+              },
+            ],
+          },
         },
         ordering: 2,
         visibility: Visibility.DM_ONLY,
@@ -253,8 +300,8 @@ async function main() {
 
   console.log("🌱 Seed complete.");
   console.log(`   Campaign: ${campaign.name}`);
-  console.log(`   DM: ${dm.displayName}`);
-  console.log(`   Player: ${player.displayName}`);
+  console.log(`   DM: ${dm.username}`);
+  console.log(`   Player: ${player.username}`);
   console.log(`   Sessions: 2`);
   console.log(`   Characters: 2`);
   console.log(`   Locations: 2 (with sub-location)`);

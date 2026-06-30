@@ -7,7 +7,7 @@ import type { Campaign, CampaignMember } from "../../types";
  * ============================================================================
  *
  * Displays the campaign DM and all campaign members. The DM sees controls to
- * add members, change member roles via a dropdown, and remove members. Removing
+ * add members, change member roles via dropdowns, and remove members. Removing
  * a member requires typing "delete" in a confirmation modal.
  */
 
@@ -26,7 +26,8 @@ const ROLES = ["PLAYER", "LOREMASTER"] as const;
  *
  * The DM row is always shown first with a special badge. Each member row shows
  * only the player's name and role to stay compact on narrow cards. The DM can
- * enter per-member edit mode to change the role or remove the member.
+ * toggle edit mode to expose role dropdowns for every member at once and remove
+ * members from the campaign.
  */
 export function MembersSection({
   campaign,
@@ -35,7 +36,7 @@ export function MembersSection({
   onToggleRole,
   onRemoveMember,
 }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<CampaignMember | null>(
     null,
   );
@@ -55,24 +56,33 @@ export function MembersSection({
     if (memberToDelete && confirmText.trim().toLowerCase() === "delete") {
       onRemoveMember(memberToDelete.userId);
       closeDelete();
-      setEditingId(null);
     }
   };
 
   return (
     <section className="rounded-xl border border-transparent bg-accent-subtle p-4 md:p-6">
-      {/* Section header with the add-member trigger (DM only) */}
+      {/* Section header with the add-member and edit triggers (DM only) */}
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-primary">
-          Members
-        </h2>
+        <h2 className="text-lg font-semibold text-primary">Members</h2>
         {isDm && (
-          <button
-            onClick={onAddMember}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
-          >
-            + Add Member
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditing((v) => !v)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                isEditing
+                  ? "bg-surface text-primary hover:bg-elevated dark:bg-surface dark:text-secondary dark:hover:bg-elevated"
+                  : "bg-accent text-text-on-accent hover:bg-accent-hover"
+              }`}
+            >
+              {isEditing ? "Done" : "Edit"}
+            </button>
+            <button
+              onClick={onAddMember}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-text-on-accent hover:bg-accent-hover"
+            >
+              + Add
+            </button>
+          </div>
         )}
       </div>
 
@@ -80,7 +90,7 @@ export function MembersSection({
         {/* DM row */}
         <div className="flex items-center justify-between rounded-lg bg-item-bg px-3 py-2 dark:bg-item-bg">
           <span className="truncate text-sm font-medium text-primary">
-            {campaign.dm.displayName}
+            {campaign.dm.username}
           </span>
           <span className="shrink-0 rounded bg-accent-subtle px-2 py-0.5 text-xs font-medium text-accent dark:bg-accent-subtle dark:text-accent">
             DM
@@ -92,10 +102,7 @@ export function MembersSection({
           <MemberRow
             key={member.id}
             member={member}
-            isDm={isDm}
-            isEditing={editingId === member.id}
-            onStartEdit={() => setEditingId(member.id)}
-            onCancelEdit={() => setEditingId(null)}
+            isEditing={isEditing}
             onChangeRole={(newRole) => {
               if (newRole !== member.role) {
                 onToggleRole(member.userId, member.role);
@@ -109,14 +116,14 @@ export function MembersSection({
       {/* Delete confirmation modal */}
       {memberToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-card-bg p-5 shadow-xl">
+          <div className="w-full max-w-sm rounded-xl bg-elevated p-5 shadow-xl">
             <h3 className="mb-2 text-lg font-semibold text-primary">
               Remove member?
             </h3>
             <p className="mb-4 text-sm text-muted dark:text-secondary">
               This will remove{" "}
               <span className="font-medium text-primary">
-                {memberToDelete.user.displayName}
+                {memberToDelete.user.username}
               </span>{" "}
               from the campaign. This cannot be undone.
             </p>
@@ -155,31 +162,24 @@ export function MembersSection({
 /**
  * MemberRow – a single campaign member entry.
  *
- * In read mode shows the display name, role badge, and an Edit button for the
- * DM. In edit mode the role becomes a dropdown and a trash icon is shown to
- * initiate removal.
+ * In read mode shows the display name and role badge. In edit mode the role
+ * becomes a dropdown and a trash icon is shown to initiate removal.
  */
 function MemberRow({
   member,
-  isDm,
   isEditing,
-  onStartEdit,
-  onCancelEdit,
   onChangeRole,
   onDelete,
 }: {
   member: CampaignMember;
-  isDm: boolean;
   isEditing: boolean;
-  onStartEdit: () => void;
-  onCancelEdit: () => void;
   onChangeRole: (role: string) => void;
   onDelete: () => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border border-transparent bg-item-bg px-3 py-2">
       <span className="truncate text-sm font-medium text-primary">
-        {member.user.displayName}
+        {member.user.username}
       </span>
 
       <div className="flex shrink-0 items-center gap-2">
@@ -203,27 +203,11 @@ function MemberRow({
             >
               🗑
             </button>
-            <button
-              onClick={onCancelEdit}
-              className="rounded-md px-2 py-1 text-xs text-muted hover:bg-surface dark:hover:bg-surface"
-            >
-              Done
-            </button>
           </>
         ) : (
-          <>
-            <span className="rounded bg-surface px-2 py-0.5 text-xs font-medium text-muted dark:bg-surface dark:text-secondary">
-              {member.role}
-            </span>
-            {isDm && (
-              <button
-                onClick={onStartEdit}
-                className="rounded-md px-2 py-1 text-xs text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
-              >
-                Edit
-              </button>
-            )}
-          </>
+          <span className="rounded bg-surface px-2 py-0.5 text-xs font-medium text-muted dark:bg-surface dark:text-secondary">
+            {member.role}
+          </span>
         )}
       </div>
     </div>

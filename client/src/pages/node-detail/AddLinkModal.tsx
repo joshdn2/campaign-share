@@ -77,7 +77,7 @@ export function AddLinkModal({ nodeId, campaignId, onAdd, onClose, isPending }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-md rounded-xl bg-card-bg p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-elevated p-6 shadow-xl">
         <h2 className="mb-4 text-lg font-bold text-primary">Add Link</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

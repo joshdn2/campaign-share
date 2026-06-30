@@ -4,7 +4,7 @@
  * Renders relationships between nodes. This includes:
  *  - Manually-created NodeLink records (treated as undirected; the current node
  *    may appear in either the source or target side of the record).
- *  - Mention-style links derived from TEXT block tags using the syntax
+ *  - Mention-style links derived from RICH_TEXT block tags using the syntax
  *    @[Node Title](node-id).
  *
  * NOTE: This version is designed to be placed inside a CollapsibleSection
@@ -13,7 +13,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { extractNodeTags } from "../../lib/tags";
+import { extractNodeTagsFromRichText } from "../../lib/tags";
 import { useAuthStore } from "../../stores/authStore";
 import { useDeleteLink } from "../../hooks/useNodes";
 import type { Node, NodeBlock, NodeLink } from "../../types";
@@ -51,7 +51,7 @@ function TrashIcon() {
 
 /**
  * LinksSection – renders manual node links as a single unified list, plus
- * outgoing mentions parsed from TEXT block tags.
+ * outgoing mentions parsed from RICH_TEXT block tags.
  */
 export function LinksSection({ node, campaignId, blocks }: Props) {
   const navigate = useNavigate();
@@ -61,14 +61,14 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
   const isOwner = node.ownerId === user?.id;
   const isDm = node.campaign?.dmId === user?.id;
 
-  // Collect outgoing mentions from TEXT block tags. Deduplicate by target id
-  // and prefer the title stored in the tag.
+  // Collect outgoing mentions from RICH_TEXT block tags. Deduplicate by target
+  // id and prefer the title stored in the tag.
   const mentions = useMemo(() => {
     const map = new Map<string, { id: string; title: string }>();
     for (const block of blocks ?? []) {
-      if (block.type !== "TEXT") continue;
-      const text = (block.content.text as string) || "";
-      for (const tag of extractNodeTags(text)) {
+      if (block.type !== "RICH_TEXT") continue;
+      const tags = extractNodeTagsFromRichText(block.content);
+      for (const tag of tags) {
         if (!map.has(tag.nodeId)) {
           map.set(tag.nodeId, { id: tag.nodeId, title: tag.title });
         }
@@ -121,7 +121,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
   if (!hasManualLinks && !hasMentions) {
     return (
       <p className="text-sm text-muted dark:text-secondary">
-        No links yet. Use the + button to add one, or tag a node with @ in a TEXT block.
+        No links yet. Use the + button to add one, or tag a node with @ in a block.
       </p>
     );
   }
@@ -165,7 +165,7 @@ export function LinksSection({ node, campaignId, blocks }: Props) {
         </div>
       )}
 
-      {/* Mentions derived from TEXT block tags */}
+      {/* Mentions derived from RICH_TEXT block tags */}
       {hasMentions && (
         <div>
           <h3 className="mb-1 text-sm font-medium text-muted dark:text-secondary">

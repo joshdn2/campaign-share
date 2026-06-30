@@ -58,12 +58,13 @@ router.get("/node/:nodeId", async (req, res) => {
             OR: [
                 { visibility: "PUBLIC" },
                 { authorId: userId, visibility: "PRIVATE" },
-                // DM-only blocks are visible only to the campaign DM.
+                // DM-only blocks are visible to the campaign DM and the block author.
+                { authorId: userId, visibility: "DM_ONLY" },
                 ...(isDm ? [{ visibility: "DM_ONLY" }] : []),
             ],
         },
         include: {
-            author: { select: { id: true, displayName: true } },
+            author: { select: { id: true, username: true } },
         },
         orderBy: { ordering: "asc" },
     });
@@ -127,7 +128,7 @@ router.post("/node/:nodeId", async (req, res) => {
             ordering: finalOrdering,
         },
         include: {
-            author: { select: { id: true, displayName: true } },
+            author: { select: { id: true, username: true } },
         },
     });
     res.status(201).json(block);
@@ -137,7 +138,7 @@ router.post("/node/:nodeId", async (req, res) => {
  *
  * Update a block's type, content, visibility, or ordering.
  *
- * Only the block's original author or the campaign DM may edit it.
+ * The block's author, the campaign DM, or a Loremaster may edit it.
  */
 router.patch("/:id", async (req, res) => {
     const { id } = req.params;
@@ -154,7 +155,11 @@ router.patch("/:id", async (req, res) => {
     }
     const isAuthor = block.authorId === userId;
     const isDm = block.node.campaign?.dmId === userId;
-    if (!isAuthor && !isDm) {
+    const membership = await db_1.prisma.campaignMember.findFirst({
+        where: { campaignId: block.node.campaignId, userId },
+    });
+    const isLoremaster = membership?.role === "LOREMASTER";
+    if (!isAuthor && !isDm && !isLoremaster) {
         res.status(403).json({ error: "Access denied" });
         return;
     }
@@ -172,7 +177,7 @@ router.patch("/:id", async (req, res) => {
             ordering: parse.data.ordering ?? undefined,
         },
         include: {
-            author: { select: { id: true, displayName: true } },
+            author: { select: { id: true, username: true } },
         },
     });
     res.json(updated);
@@ -182,7 +187,7 @@ router.patch("/:id", async (req, res) => {
  *
  * Delete a content block.
  *
- * Only the block's author or the campaign DM may delete it.
+ * The block's author, the campaign DM, or a Loremaster may delete it.
  */
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
@@ -199,7 +204,11 @@ router.delete("/:id", async (req, res) => {
     }
     const isAuthor = block.authorId === userId;
     const isDm = block.node.campaign?.dmId === userId;
-    if (!isAuthor && !isDm) {
+    const membership = await db_1.prisma.campaignMember.findFirst({
+        where: { campaignId: block.node.campaignId, userId },
+    });
+    const isLoremaster = membership?.role === "LOREMASTER";
+    if (!isAuthor && !isDm && !isLoremaster) {
         res.status(403).json({ error: "Access denied" });
         return;
     }
@@ -250,11 +259,13 @@ router.patch("/node/:nodeId/reorder", async (req, res) => {
             OR: [
                 { visibility: "PUBLIC" },
                 { authorId: userId, visibility: "PRIVATE" },
+                // DM-only blocks are visible to the campaign DM and the block author.
+                { authorId: userId, visibility: "DM_ONLY" },
                 ...(isDm ? [{ visibility: "DM_ONLY" }] : []),
             ],
         },
         include: {
-            author: { select: { id: true, displayName: true } },
+            author: { select: { id: true, username: true } },
         },
         orderBy: { ordering: "asc" },
     });

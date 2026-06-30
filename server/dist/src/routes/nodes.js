@@ -464,7 +464,7 @@ router.get("/campaign/:campaignId", async (req, res) => {
             ...buildNodeVisibilityFilter(campaign.dmId, userId),
         },
         include: {
-            owner: { select: { id: true, displayName: true } },
+            owner: { select: { id: true, username: true } },
             tags: true,
             // Spread the detail include for the SESSION case as a representative example;
             // the API currently returns all detail relations through other endpoints.
@@ -562,12 +562,12 @@ router.get("/search", async (req, res) => {
           ${BLOCK_SCORE} AS score, 'block'::text AS matched_field
         FROM visible_nodes vn
         JOIN "NodeBlock" nb ON nb."nodeId" = vn.id
-        WHERE nb.type = 'TEXT'
-          AND nb.content->>'text' ILIKE $3
+        WHERE nb.type = 'RICH_TEXT'
+          AND jsonb_path_query_array(nb.content, 'lax $.**.text')::text ILIKE $3
           AND (
             nb.visibility = 'PUBLIC'
             OR (nb.visibility = 'PRIVATE' AND nb."authorId" = $1)
-            OR (nb.visibility = 'DM_ONLY' AND vn.dm_id = $1)
+            OR (nb.visibility = 'DM_ONLY' AND (vn.dm_id = $1 OR nb."authorId" = $1))
           )
       ),
       all_matches AS (
@@ -662,7 +662,7 @@ router.post("/campaign/:campaignId", async (req, res) => {
                     parentId: parentId || null,
                 },
                 include: {
-                    owner: { select: { id: true, displayName: true } },
+                    owner: { select: { id: true, username: true } },
                     tags: true,
                 },
             });
@@ -692,7 +692,7 @@ router.post("/campaign/:campaignId", async (req, res) => {
         const fullNode = await db_1.prisma.node.findUnique({
             where: { id: node.id },
             include: {
-                owner: { select: { id: true, displayName: true } },
+                owner: { select: { id: true, username: true } },
                 tags: true,
                 ...detailInclude(type),
             },
@@ -880,7 +880,7 @@ router.get("/:id", async (req, res) => {
     const node = await db_1.prisma.node.findUnique({
         where: { id },
         include: {
-            owner: { select: { id: true, displayName: true } },
+            owner: { select: { id: true, username: true } },
             campaign: { select: { id: true, name: true, dmId: true } },
             parent: { select: { id: true, title: true, type: true } },
             children: { select: { id: true, title: true, type: true } },
@@ -916,11 +916,13 @@ router.get("/:id", async (req, res) => {
             OR: [
                 { visibility: "PUBLIC" },
                 { authorId: userId, visibility: "PRIVATE" },
+                // DM-only blocks are visible to the campaign DM and the block author.
+                { authorId: userId, visibility: "DM_ONLY" },
                 ...(isDm ? [{ visibility: "DM_ONLY" }] : []),
             ],
         },
         include: {
-            author: { select: { id: true, displayName: true } },
+            author: { select: { id: true, username: true } },
         },
         orderBy: { ordering: "asc" },
     });
@@ -947,7 +949,8 @@ router.get("/:id", async (req, res) => {
  *
  * Update a node's core fields and/or its type-specific details.
  *
- * Only the node owner or the campaign DM may edit a node. The node update and
+ * The node owner or the campaign DM may edit any field. Campaign members with
+ * the Loremaster role may edit type-specific details only. The node update and
  * detail upsert run inside a transaction. After the transaction, the full node
  * is re-fetched and its visible blocks are included in the response.
  */
@@ -964,7 +967,14 @@ router.patch("/:id", async (req, res) => {
     }
     const isOwner = node.ownerId === userId;
     const isDm = node.campaign?.dmId === userId;
-    if (!isOwner && !isDm) {
+    let isLoremaster = false;
+    if (!isOwner && !isDm && node.campaignId) {
+        const member = await db_1.prisma.campaignMember.findUnique({
+            where: { campaignId_userId: { campaignId: node.campaignId, userId } },
+        });
+        isLoremaster = member?.role === "LOREMASTER";
+    }
+    if (!isOwner && !isDm && !isLoremaster) {
         res.status(403).json({ error: "Access denied" });
         return;
     }
@@ -972,6 +982,17 @@ router.patch("/:id", async (req, res) => {
     if (!parse.success) {
         res.status(400).json({ error: parse.error.flatten() });
         return;
+    }
+    // Loremasters may only update type-specific details, not core node fields.
+    if (isLoremaster) {
+        const { title, excerpt, visibility, parentId } = parse.data;
+        if (title !== undefined ||
+            excerpt !== undefined ||
+            visibility !== undefined ||
+            parentId !== undefined) {
+            res.status(403).json({ error: "Access denied" });
+            return;
+        }
     }
     const { title, excerpt, visibility, parentId, details } = parse.data;
     try {
@@ -1008,7 +1029,7 @@ router.patch("/:id", async (req, res) => {
         const fullNode = await db_1.prisma.node.findUnique({
             where: { id: updated.id },
             include: {
-                owner: { select: { id: true, displayName: true } },
+                owner: { select: { id: true, username: true } },
                 campaign: { select: { id: true, name: true, dmId: true } },
                 parent: { select: { id: true, title: true, type: true } },
                 children: { select: { id: true, title: true, type: true } },
@@ -1030,11 +1051,13 @@ router.patch("/:id", async (req, res) => {
                 OR: [
                     { visibility: "PUBLIC" },
                     { authorId: userId, visibility: "PRIVATE" },
+                    // DM-only blocks are visible to the campaign DM and the block author.
+                    { authorId: userId, visibility: "DM_ONLY" },
                     ...(isDm ? [{ visibility: "DM_ONLY" }] : []),
                 ],
             },
             include: {
-                author: { select: { id: true, displayName: true } },
+                author: { select: { id: true, username: true } },
             },
             orderBy: { ordering: "asc" },
         });
@@ -1059,6 +1082,218 @@ router.patch("/:id", async (req, res) => {
     catch (err) {
         console.error("Update node error:", err);
         res.status(500).json({ error: "Failed to update node" });
+    }
+});
+/**
+ * POST /api/nodes/:id/merge
+ *
+ * Merge another node into the requested node. The requested node survives and
+ * absorbs the secondary node's blocks, tags, links, and children. The secondary
+ * node is deleted.
+ *
+ * Both nodes must be public, belong to the same campaign, and share the same
+ * node type. Only the campaign DM or a Loremaster may perform a merge.
+ */
+router.post("/:id/merge", async (req, res) => {
+    const { id: primaryId } = req.params;
+    const userId = req.user.userId;
+    const parse = validation_1.mergeNodeSchema.safeParse(req.body);
+    if (!parse.success) {
+        res.status(400).json({ error: parse.error.flatten() });
+        return;
+    }
+    const { secondaryId, choices } = parse.data;
+    if (primaryId === secondaryId) {
+        res.status(400).json({ error: "Cannot merge a node with itself" });
+        return;
+    }
+    const [primary, secondary] = await Promise.all([
+        db_1.prisma.node.findUnique({
+            where: { id: primaryId },
+            include: { campaign: { select: { id: true, dmId: true } } },
+        }),
+        db_1.prisma.node.findUnique({
+            where: { id: secondaryId },
+            include: { campaign: { select: { id: true, dmId: true } } },
+        }),
+    ]);
+    if (!primary || !secondary) {
+        res.status(404).json({ error: "Node not found" });
+        return;
+    }
+    if (!primary.campaignId || primary.campaignId !== secondary.campaignId) {
+        res.status(400).json({ error: "Nodes must belong to the same campaign" });
+        return;
+    }
+    if (primary.type !== secondary.type) {
+        res.status(400).json({ error: "Nodes must be the same type" });
+        return;
+    }
+    if (primary.visibility !== "PUBLIC" || secondary.visibility !== "PUBLIC") {
+        res.status(400).json({ error: "Both nodes must be public" });
+        return;
+    }
+    const campaignId = primary.campaignId;
+    const campaignDmId = primary.campaign?.dmId ?? null;
+    const isDm = campaignDmId === userId;
+    const member = await db_1.prisma.campaignMember.findUnique({
+        where: { campaignId_userId: { campaignId, userId } },
+    });
+    const isLoremaster = member?.role === "LOREMASTER";
+    if (!isDm && !isLoremaster) {
+        res.status(403).json({ error: "Access denied" });
+        return;
+    }
+    try {
+        const merged = await db_1.prisma.$transaction(async (tx) => {
+            const primaryFull = await tx.node.findUnique({
+                where: { id: primaryId },
+                include: {
+                    sessionDetail: true,
+                    characterDetail: true,
+                    creatureDetail: true,
+                    itemDetail: true,
+                    locationDetail: true,
+                    factionDetail: true,
+                    blocks: true,
+                    outgoingLinks: true,
+                    incomingLinks: true,
+                    children: { select: { id: true } },
+                    tags: true,
+                },
+            });
+            const secondaryFull = await tx.node.findUnique({
+                where: { id: secondaryId },
+                include: {
+                    sessionDetail: true,
+                    characterDetail: true,
+                    creatureDetail: true,
+                    itemDetail: true,
+                    locationDetail: true,
+                    factionDetail: true,
+                    blocks: true,
+                    outgoingLinks: true,
+                    incomingLinks: true,
+                    children: { select: { id: true } },
+                    tags: true,
+                },
+            });
+            if (!primaryFull || !secondaryFull) {
+                throw new Error("Node not found");
+            }
+            // 1. Core node fields.
+            await tx.node.update({
+                where: { id: primaryId },
+                data: {
+                    title: choices.title === "secondary" ? secondaryFull.title : primaryFull.title,
+                    excerpt: choices.excerpt === "secondary" ? secondaryFull.excerpt : primaryFull.excerpt,
+                },
+            });
+            // 2. Type-specific details.
+            const detailKey = `${primaryFull.type.toLowerCase()}Detail`;
+            const primaryDetail = primaryFull[detailKey];
+            const secondaryDetail = secondaryFull[detailKey];
+            if (primaryDetail || secondaryDetail) {
+                const mergedDetails = {};
+                const fieldKeys = new Set([
+                    ...Object.keys(primaryDetail ?? {}),
+                    ...Object.keys(secondaryDetail ?? {}),
+                    ...Object.keys(choices.details),
+                ]);
+                for (const key of fieldKeys) {
+                    if (key === "id" || key === "nodeId")
+                        continue;
+                    const choice = choices.details[key] ?? "primary";
+                    const value = choice === "secondary" ? secondaryDetail?.[key] : primaryDetail?.[key];
+                    mergedDetails[key] = value ?? null;
+                }
+                await updateDetail(tx, primaryId, primaryFull.type, mergedDetails);
+            }
+            // 3. Blocks: repoint all blocks to the primary node and order by creation date.
+            const allBlocks = [...primaryFull.blocks, ...secondaryFull.blocks];
+            allBlocks.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+            for (let i = 0; i < allBlocks.length; i++) {
+                await tx.nodeBlock.update({
+                    where: { id: allBlocks[i].id },
+                    data: { nodeId: primaryId, ordering: i },
+                });
+            }
+            // 4. Redirect links from the secondary node to the primary node.
+            const secondaryLinks = [
+                ...secondaryFull.outgoingLinks,
+                ...secondaryFull.incomingLinks,
+            ];
+            const primaryLinks = await tx.nodeLink.findMany({
+                where: {
+                    OR: [{ sourceId: primaryId }, { targetId: primaryId }],
+                },
+            });
+            const primaryLinkPairs = new Set(primaryLinks.map((l) => [l.sourceId, l.targetId].sort().join("|")));
+            for (const link of secondaryLinks) {
+                const otherId = link.sourceId === secondaryId ? link.targetId : link.sourceId;
+                if (otherId === primaryId) {
+                    await tx.nodeLink.delete({ where: { id: link.id } });
+                    continue;
+                }
+                const newSource = link.sourceId === secondaryId ? primaryId : link.sourceId;
+                const newTarget = link.targetId === secondaryId ? primaryId : link.targetId;
+                const pairKey = [newSource, newTarget].sort().join("|");
+                if (primaryLinkPairs.has(pairKey)) {
+                    await tx.nodeLink.delete({ where: { id: link.id } });
+                }
+                else {
+                    await tx.nodeLink.update({
+                        where: { id: link.id },
+                        data: { sourceId: newSource, targetId: newTarget },
+                    });
+                    primaryLinkPairs.add(pairKey);
+                }
+            }
+            // 5. Tags: union and deduplicate.
+            const newTags = secondaryFull.tags.filter((t) => !primaryFull.tags.some((pt) => pt.tag === t.tag));
+            if (newTags.length > 0) {
+                await tx.nodeTag.createMany({
+                    data: newTags.map((t) => ({ nodeId: primaryId, tag: t.tag })),
+                    skipDuplicates: true,
+                });
+            }
+            // 6. Hierarchy: promote the primary node if it was a child of the secondary,
+            //    then move the secondary node's other children under the primary node.
+            if (primaryFull.parentId === secondaryId) {
+                await tx.node.update({
+                    where: { id: primaryId },
+                    data: { parentId: secondaryFull.parentId },
+                });
+            }
+            await tx.node.updateMany({
+                where: { parentId: secondaryId, id: { not: primaryId } },
+                data: { parentId: primaryId },
+            });
+            // 7. Delete the secondary node.
+            await tx.node.delete({ where: { id: secondaryId } });
+            // 8. Return the surviving node.
+            return tx.node.findUnique({
+                where: { id: primaryId },
+                include: {
+                    owner: { select: { id: true, username: true } },
+                    campaign: { select: { id: true, name: true, dmId: true } },
+                    parent: { select: { id: true, title: true, type: true } },
+                    children: { select: { id: true, title: true, type: true } },
+                    tags: true,
+                    sessionDetail: true,
+                    characterDetail: true,
+                    creatureDetail: true,
+                    itemDetail: true,
+                    locationDetail: true,
+                    factionDetail: true,
+                },
+            });
+        });
+        res.json(merged);
+    }
+    catch (err) {
+        console.error("Merge nodes error:", err);
+        res.status(500).json({ error: "Failed to merge nodes" });
     }
 });
 /**

@@ -54,7 +54,7 @@ const NODE_TYPE_ORDER: NodeType[] = [
 // Shared aside classes. On desktop the sidebar is static and visible. On mobile
 // it is fixed, full-height, and translated off-screen until `isOpen` is true.
 const SIDEBAR_CLASSES =
-  "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-default bg-accent-subtle p-4 transition-transform duration-200 ease-in-out md:static md:translate-x-0";
+  "fixed inset-y-0 left-0 top-14 z-40 w-64 transform border-r border-default bg-sidebar-bg p-4 transition-transform duration-200 ease-in-out md:static md:top-0 md:translate-x-0";
 
 /**
  * Top-level sidebar router.
@@ -130,7 +130,7 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
         }`}
         aria-label="Campaigns sidebar"
       >
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted dark:text-secondary">
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-text-secondary md:text-xs">
           My Campaigns
         </h2>
 
@@ -141,13 +141,13 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
             <button
               key={campaign.id}
               onClick={() => navigate(`/campaigns/${campaign.id}`)}
-              className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-primary hover:bg-surface dark:text-secondary dark:hover:bg-surface"
+              className="w-full rounded-md px-3 py-2 text-left text-base font-medium text-text-primary hover:bg-surface dark:text-text-secondary dark:hover:bg-surface md:text-sm"
             >
               <div className="flex items-center justify-between">
                 <span className="truncate">{campaign.name}</span>
                 {/* Badge the campaign if the current user is its DM */}
                 {campaign.dmId === campaign.dm?.id && (
-                  <span className="ml-2 text-[10px] rounded bg-accent-subtle px-1.5 py-0.5 text-accent dark:bg-accent-subtle dark:text-accent">
+                  <span className="ml-2 rounded bg-accent-subtle px-1.5 py-0.5 text-xs text-accent dark:bg-accent-subtle dark:text-accent md:text-[10px]">
                     DM
                   </span>
                 )}
@@ -158,7 +158,7 @@ function CampaignsSidebar({ isOpen, navigate }: SidebarViewProps) {
 
         {/* Empty state when the user has no campaigns */}
         {campaigns?.length === 0 && (
-          <p className="py-4 text-center text-sm text-muted dark:text-secondary">
+          <p className="py-4 text-center text-sm text-text-secondary">
             No campaigns yet
           </p>
         )}
@@ -246,7 +246,7 @@ function CampaignNavSidebar({
       >
         {/* <button
           onClick={() => navigate("/campaigns")}
-          className="mb-4 flex items-center gap-1 text-sm text-muted hover:text-primary dark:text-secondary dark:hover:text-secondary"
+          className="mb-4 flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary dark:text-text-secondary dark:hover:text-text-secondary"
         >
           ← All Campaigns
         </button> */}
@@ -254,7 +254,7 @@ function CampaignNavSidebar({
         {/* Campaign title links back to the campaign overview */}
         <button
           onClick={() => navigate(`/campaigns/${campaignId}`)}
-          className="mb-1 text-left text-sm font-bold text-primary hover:text-accent dark:text-primary dark:hover:text-accent"
+          className="mb-1 text-left text-base font-bold text-text-primary hover:text-accent dark:hover:text-accent md:text-sm"
         >
           {campaign.name}
         </button>
@@ -268,10 +268,10 @@ function CampaignNavSidebar({
             return (
               <div
                 key={type}
-                className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
+                className={`flex items-center justify-between rounded-md px-2 py-1.5 text-base transition-colors md:text-sm ${
                   isActive
                     ? "bg-item-bg text-accent ring-1 ring-accent dark:bg-item-bg dark:text-accent dark:ring-accent"
-                    : "text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
+                    : "text-text-secondary hover:bg-surface dark:text-text-secondary dark:hover:bg-surface"
                 }`}
               >
                 {/* Filter button: navigate to campaign with type query param */}
@@ -286,7 +286,7 @@ function CampaignNavSidebar({
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       isActive
                         ? "bg-surface text-accent dark:bg-surface dark:text-accent"
-                        : "bg-surface text-muted dark:bg-surface dark:text-secondary"
+                        : "bg-surface text-text-secondary dark:bg-surface"
                     }`}
                   >
                     {count}
@@ -312,7 +312,7 @@ function CampaignNavSidebar({
         </div>
 
         {/* Recently updated nodes for quick access */}
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted dark:text-secondary">
+        <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-secondary md:text-xs">
           Recent Nodes
         </h3>
         <div className="space-y-1">
@@ -322,14 +322,24 @@ function CampaignNavSidebar({
               onClick={() =>
                 navigate(`/campaigns/${campaignId}/nodes/${node.id}`)
               }
-              className="w-full truncate rounded-md px-3 py-1.5 text-left text-sm text-muted hover:bg-surface dark:text-secondary dark:hover:bg-surface"
+              className="w-full truncate rounded-md px-3 py-1.5 text-left text-base text-text-secondary hover:bg-surface dark:text-text-secondary dark:hover:bg-surface md:text-sm"
             >
-              <span className="mr-1 text-xs text-secondary">
+              <span className="mr-1 text-sm text-text-secondary md:text-xs">
                 {node.type.slice(0, 3)}
               </span>
               {node.title}
             </button>
           ))}
+        </div>
+
+        {/* Account link */}
+        <div className="mt-6 border-t border-default pt-4">
+          <button
+            onClick={() => navigate("/account")}
+            className="w-full rounded-md px-3 py-2 text-left text-base font-medium text-text-primary hover:bg-surface dark:text-text-secondary dark:hover:bg-surface md:text-sm"
+          >
+            My Account
+          </button>
         </div>
       </aside>
     </>
