@@ -24,6 +24,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
+// Runtime check above guarantees a string; narrow the type for jwt.sign/verify.
+const JWT_SECRET_VALUE: string = JWT_SECRET;
 const SALT_ROUNDS = 10;
 
 /**
@@ -105,7 +107,7 @@ router.post("/login", async (req, res) => {
   }
 
   // Sign a token containing the user's identity. It expires in 7 days.
-  const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+  const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET_VALUE, {
     expiresIn: "7d",
   });
 

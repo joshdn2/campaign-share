@@ -17,6 +17,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
+// Runtime check above guarantees a string; narrow the type for jwt.sign/verify.
+const JWT_SECRET_VALUE: string = JWT_SECRET;
 
 /**
  * Shape of the authenticated user attached to an Express Request.
@@ -63,7 +65,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   try {
     // Verify the token and cast the payload to the expected shape.
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+    const payload = jwt.verify(token, JWT_SECRET_VALUE) as { userId: string; email: string };
 
     // Attach the authenticated user's identity to the request for downstream use.
     req.user = { userId: payload.userId, email: payload.email };
