@@ -11,10 +11,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-// JWT secret used to verify token signatures. In production this should be set
-// via the JWT_SECRET environment variable; a fallback is provided only for
-// local development convenience.
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
+// JWT secret used to verify token signatures. It must be supplied via the
+// JWT_SECRET environment variable; no fallback is provided.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 
 /**
  * Shape of the authenticated user attached to an Express Request.

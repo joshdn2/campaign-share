@@ -18,8 +18,12 @@ import { requireAuth } from "../middleware/auth";
 const router = Router();
 
 // JWT secret and cookie settings. The secret signs tokens; SALT_ROUNDS controls
-// the bcrypt hashing cost.
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret";
+// the bcrypt hashing cost. JWT_SECRET must be supplied via the environment so
+// that the same secret is never hardcoded in source control.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 const SALT_ROUNDS = 10;
 
 /**

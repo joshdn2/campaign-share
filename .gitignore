@@ -1,0 +1,18 @@
+# Sensitive runtime files
+cookies.txt
+server/cookies.txt
+
+# Server build output
+server/dist/
+
+# Local environment files
+.env
+server/.env
+client/.env
+
+# Editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
