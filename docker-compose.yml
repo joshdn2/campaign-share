@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: ttrpg
       POSTGRES_PASSWORD: ttrpg
-      POSTGRES_DB: campaignhub
+      POSTGRES_DB: campaignnotes
     ports:
       - "5432:5432"
     volumes:

@@ -79,7 +79,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           className="cursor-pointer text-base font-bold text-black dark:text-white md:text-lg"
           onClick={() => navigate("/campaigns")}
         >
-          <span className="hidden md:inline">CampaignHub</span>
+          <span className="hidden md:inline">Campaign Notes</span>
           <span className="md:hidden">CH</span>
         </h1>
       </div>

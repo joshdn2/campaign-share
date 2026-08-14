@@ -1,7 +1,7 @@
 /**
  * index.ts
  *
- * Application bootstrap for the CampaignShare API server.
+ * Application bootstrap for the Campaign Notes API server.
  *
  * This file wires together Express middleware, route handlers, a health-check
  * endpoint, and a global error handler. It is the process entry point for the
@@ -80,7 +80,7 @@ app.use("/api/campaigns/:campaignId/calendar", calendarsRouter);
  */
 app.get("/", (req, res) => {
   res.json({
-    message: "CampaignHub API is running",
+    message: "Campaign Notes API is running",
     endpoints: [
       "/api/health",
       "/api/auth/register",

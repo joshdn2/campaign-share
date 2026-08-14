@@ -1,7 +1,7 @@
 /**
  * App.tsx
  *
- * Root routing configuration for the CampaignHub React SPA.
+ * Root routing configuration for the Campaign Notes React SPA.
  * Defines public authentication routes and wraps the main application
  * shell in a ProtectedRoute guard so only authenticated users can
  * access campaign-related pages.

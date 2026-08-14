@@ -82,7 +82,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface px-4 dark:bg-base">
       <div className="w-full max-w-md rounded-xl bg-card-bg p-8 shadow-lg">
         <h1 className="mb-6 text-2xl font-bold text-primary">
-          Sign in to CampaignHub
+          Sign in to Campaign Notes
         </h1>
 
         {/* Inline error alert */}

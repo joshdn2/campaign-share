@@ -107,7 +107,7 @@ export function RegisterPage() {
               required
               minLength={3}
               maxLength={30}
-              pattern="^[a-zA-Z0-9_-]+$"
+              pattern="^(?:[a-zA-Z0-9_]|-)+$"
               title="Username can only contain letters, numbers, underscores, and hyphens"
               className="w-full rounded-lg border border-default px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent dark:border-default dark:bg-surface dark:text-primary"
             />
@@ -152,7 +152,10 @@ export function RegisterPage() {
         {/* Link to the login page */}
         <p className="mt-4 text-center text-sm text-muted dark:text-secondary">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-accent hover:underline dark:text-accent">
+          <Link
+            to="/login"
+            className="font-medium text-accent hover:underline dark:text-accent"
+          >
             Sign in
           </Link>
         </p>

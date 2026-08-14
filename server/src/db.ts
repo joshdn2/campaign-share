@@ -1,7 +1,7 @@
 /**
  * db.ts
  *
- * Database entry point for the CampaignShare backend.
+ * Database entry point for the Campaign Notes backend.
  *
  * This file creates and exports a single Prisma Client instance. Keeping one
  * shared `PrismaClient` across the application avoids exhausting database

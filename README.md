@@ -1,4 +1,4 @@
-# CampaignShare
+# Campaign Notes
 
 A web app for tabletop RPG campaigns to share notes, maps, calendars, and lore with players. Built with a React frontend and an Express/Prisma/PostgreSQL backend.
 

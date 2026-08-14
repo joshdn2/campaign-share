@@ -1,7 +1,7 @@
 /**
  * routes/auth.ts
  *
- * Authentication routes for the CampaignShare API.
+ * Authentication routes for the Campaign Notes API.
  *
  * This router handles user registration, login, logout, and fetching the
  * currently authenticated user. Passwords are hashed with bcrypt before
