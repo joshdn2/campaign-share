@@ -12,7 +12,11 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../db";
-import { registerSchema, loginSchema, updateUserSchema } from "../lib/validation";
+import {
+  registerSchema,
+  loginSchema,
+  updateUserSchema,
+} from "../lib/validation";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -56,7 +60,9 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  const existingUsername = await prisma.user.findUnique({
+    where: { username },
+  });
   if (existingUsername) {
     res.status(409).json({ error: "Username already in use" });
     return;
@@ -107,18 +113,24 @@ router.post("/login", async (req, res) => {
   }
 
   // Sign a token containing the user's identity. It expires in 7 days.
-  const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET_VALUE, {
-    expiresIn: "7d",
-  });
+  const token = jwt.sign(
+    { userId: user.id, email: user.email },
+    JWT_SECRET_VALUE,
+    {
+      expiresIn: "7d",
+    },
+  );
 
   // Set the token in an HTTP-only cookie so the browser sends it automatically
   // on subsequent requests. `secure` is only enabled in production to keep
   // local development over HTTP working.
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    maxAge: 1000 * 60 * 60 * 24 * 7,
   });
 
   res.json({
@@ -136,7 +148,14 @@ router.post("/login", async (req, res) => {
  * Clears the authentication cookie, effectively logging the user out.
  */
 router.post("/logout", (req, res) => {
-  res.clearCookie("token");
+  const isProduction = process.env.NODE_ENV === "production";
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  });
+
   res.json({ message: "Logged out" });
 });
 

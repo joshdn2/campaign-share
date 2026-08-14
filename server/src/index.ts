@@ -43,7 +43,16 @@ const PORT = process.env.PORT || 3001;
  * exposes the request body, and cookie-parser exposes req.cookies.
  */
 app.use(helmet());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
+app.set("trust proxy", 1);
+
+app.use(
+  cors({
+    origin: CLIENT_URL,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 
