@@ -55,6 +55,10 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(calendar?.name ?? "");
   const [daysInWeek, setDaysInWeek] = useState(calendar?.daysInWeek ?? 7);
+  // Raw text for the Days in Week input so the field can be empty while editing.
+  const [daysInWeekText, setDaysInWeekText] = useState(
+    String(calendar?.daysInWeek ?? 7),
+  );
   const [weekdayNames, setWeekdayNames] = useState<string[]>(
     calendar?.weekdayNames?.length
       ? calendar.weekdayNames
@@ -88,6 +92,30 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
       return next;
     });
     setAnchorWeekdayIndex((prev) => Math.min(prev, clamped - 1));
+  };
+
+  /**
+   * Keeps the raw input text in sync while typing. An empty field is allowed
+   * mid-edit; the numeric state is only updated for non-empty values so the
+   * field no longer snaps to 1 as soon as the user deletes the current value.
+   */
+  const handleDaysInWeekInputChange = (raw: string) => {
+    setDaysInWeekText(raw);
+    if (raw === "") return;
+    handleDaysInWeekChange(Number(raw));
+  };
+
+  /**
+   * On blur, an empty field falls back to the default of 7 days; otherwise the
+   * displayed text is normalized to the clamped numeric value.
+   */
+  const handleDaysInWeekBlur = () => {
+    if (daysInWeekText.trim() === "") {
+      handleDaysInWeekChange(7);
+    }
+    setDaysInWeekText(
+      daysInWeekText.trim() === "" ? "7" : String(daysInWeek),
+    );
   };
 
   const handleAddAge = () => {
@@ -320,8 +348,9 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
               type="number"
               min={1}
               max={31}
-              value={daysInWeek}
-              onChange={(e) => handleDaysInWeekChange(Number(e.target.value))}
+              value={daysInWeekText}
+              onChange={(e) => handleDaysInWeekInputChange(e.target.value)}
+              onBlur={handleDaysInWeekBlur}
               required
               className={`${numberClass} w-24`}
             />
