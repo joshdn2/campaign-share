@@ -302,8 +302,15 @@ model CalendarAge {
   id         String @id @default(uuid())
   calendarId String
   name       String
-  startYear  Int    @default(0)
-  endYear    Int?
+  // Number of years in the age. Null when the age is the current age — its
+  // length is derived from currentYear instead.
+  length     Int?
+  // Whether the age counts a year 0 (true) or starts at year 1 (false).
+  hasYearZero Boolean @default(false)
+  // At most one age per calendar is the current (ongoing) age.
+  isCurrent   Boolean @default(false)
+  // The current year within the age; only meaningful when isCurrent is true.
+  currentYear Int?
   order      Int    @default(0)
 
   calendar CampaignCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)

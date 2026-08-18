@@ -23,16 +23,29 @@ export function daysInYear(calendar: CampaignCalendar): number {
 }
 
 /**
+ * Compute the first year of an age: 0 for ages that count a year zero,
+ * otherwise 1.
+ */
+export function ageStartYear(age: CampaignCalendar["ages"][number]): number {
+  return age.hasYearZero ? 0 : 1;
+}
+
+/**
  * Compute the length of an age in years.
  *
- * If the age has no endYear, it is treated as infinitely long. Callers should
- * normally only ask for the length of ages that have ended.
+ * For ordinary ages this is the stored length. For the current age the
+ * length is derived from its current year, so ages positioned after it
+ * (future ages) begin right after the current year. Returns null when no
+ * length can be determined; callers should treat that as open-ended.
  */
 export function ageLengthYears(
   age: CampaignCalendar["ages"][number],
 ): number | null {
-  if (age.endYear == null) return null;
-  return age.endYear - age.startYear + 1;
+  if (age.isCurrent) {
+    if (age.currentYear == null) return null;
+    return age.currentYear - ageStartYear(age) + 1;
+  }
+  return age.length;
 }
 
 /**
@@ -63,7 +76,7 @@ export function absoluteDayForDate(
   }
 
   // Add years within the current age.
-  absoluteDay += (date.year - age.startYear) * yearDays;
+  absoluteDay += (date.year - ageStartYear(age)) * yearDays;
 
   // Add months within the current year.
   const monthIndex = calendar.months.indexOf(month);
@@ -94,7 +107,7 @@ export function dateForAbsoluteDay(
     const ageDays = length != null ? length * yearDays : Infinity;
 
     if (remaining < ageDays) {
-      const year = age.startYear + Math.floor(remaining / yearDays);
+      const year = ageStartYear(age) + Math.floor(remaining / yearDays);
       let yearRemaining = remaining % yearDays;
 
       for (const month of calendar.months) {
@@ -114,10 +127,10 @@ export function dateForAbsoluteDay(
     }
 
     if (length == null) {
-      // We're past the end of an infinite final age; clamp to its start.
+      // We're past the end of an open-ended age; clamp to its start.
       return {
         ageId: age.id,
-        year: age.startYear,
+        year: ageStartYear(age),
         monthId: calendar.months[0].id,
         day: 1,
       };
@@ -128,9 +141,14 @@ export function dateForAbsoluteDay(
 
   // Past the end of all defined ages; clamp to the last age's last day.
   const lastAge = calendar.ages[calendar.ages.length - 1];
+  const lastAgeLength = ageLengthYears(lastAge);
+  const lastYear =
+    lastAgeLength != null
+      ? ageStartYear(lastAge) + lastAgeLength - 1
+      : ageStartYear(lastAge);
   return {
     ageId: lastAge.id,
-    year: lastAge.endYear ?? lastAge.startYear,
+    year: lastYear,
     monthId: calendar.months[calendar.months.length - 1].id,
     day: calendar.months[calendar.months.length - 1].days,
   };
@@ -160,7 +178,7 @@ export function weekdayForDate(
 
   const anchorAge = calendar.ages.find((a) => a.id === calendar.anchorAgeId);
   if (anchorAge) {
-    anchorDate.year = anchorAge.startYear;
+    anchorDate.year = ageStartYear(anchorAge);
   }
 
   const dateAbs = absoluteDayForDate(calendar, date);
@@ -235,7 +253,7 @@ export function getDefaultCalendarDate(
 
   if (latest) return latest;
 
-  // Fallback to first age, year 0, first month, day 1.
+  // Fallback to the first year of the first age, first month, day 1.
   const firstAge = calendar.ages[0];
   const firstMonth = calendar.months[0];
   if (!firstAge || !firstMonth) {
@@ -244,7 +262,7 @@ export function getDefaultCalendarDate(
 
   return {
     ageId: firstAge.id,
-    year: firstAge.startYear,
+    year: ageStartYear(firstAge),
     monthId: firstMonth.id,
     day: 1,
   };

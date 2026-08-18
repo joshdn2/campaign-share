@@ -284,8 +284,11 @@ export const campaignCalendarSchema = z.object({
     z.object({
       id: z.string().uuid().optional(),
       name: z.string().min(1).max(100),
-      startYear: z.number().int().min(0).default(0),
-      endYear: z.number().int().min(0).optional().nullable(),
+      // Number of years in the age; null while the age is the current age.
+      length: z.number().int().min(1).max(100000).optional().nullable(),
+      hasYearZero: z.boolean().default(false),
+      isCurrent: z.boolean().default(false),
+      currentYear: z.number().int().min(0).optional().nullable(),
       order: z.number().int().min(0).default(0),
     })
   ),

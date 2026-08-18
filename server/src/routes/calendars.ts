@@ -173,8 +173,12 @@ router.post("/", async (req, res) => {
         const data = {
           calendarId: header.id,
           name: age.name,
-          startYear: age.startYear,
-          endYear: age.endYear,
+          // The current age has no fixed length; its length is derived from
+          // currentYear. Conversely, non-current ages store no currentYear.
+          length: age.isCurrent ? null : (age.length ?? null),
+          hasYearZero: age.hasYearZero,
+          isCurrent: age.isCurrent,
+          currentYear: age.isCurrent ? (age.currentYear ?? null) : null,
           order: age.order,
         };
         if (age.id) {

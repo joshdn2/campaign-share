@@ -10,6 +10,7 @@
  */
 
 import type { CampaignCalendar, CalendarDate } from "../../types";
+import { ageStartYear } from "../../lib/calendar";
 
 interface Props {
   calendar: CampaignCalendar;
@@ -24,7 +25,7 @@ export function CalendarDatePicker({ calendar, value, onChange, label }: Props) 
 
   const safeValue = value ?? {
     ageId: calendar.ages[0]?.id ?? "",
-    year: calendar.ages[0]?.startYear ?? 0,
+    year: calendar.ages[0] ? ageStartYear(calendar.ages[0]) : 0,
     monthId: calendar.months[0]?.id ?? "",
     day: 1,
   };

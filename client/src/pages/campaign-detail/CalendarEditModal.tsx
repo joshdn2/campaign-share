@@ -125,8 +125,10 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
         id: generateId(),
         calendarId: "",
         name: "",
-        startYear: 0,
-        endYear: null,
+        length: 100,
+        hasYearZero: false,
+        isCurrent: false,
+        currentYear: null,
         order: prev.length,
       },
     ]);
@@ -134,6 +136,33 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
 
   const handleUpdateAge = (index: number, data: Partial<CampaignCalendar["ages"][number]>) => {
     setAges((prev) => prev.map((age, i) => (i === index ? { ...age, ...data } : age)));
+  };
+
+  /**
+   * Marks one age as the current age, clearing the flag on all others. The
+   * newly current age swaps its fixed length for a current year (defaulting
+   * to its first year); ages losing the flag get a default length back.
+   */
+  const handleSetCurrentAge = (index: number) => {
+    setAges((prev) =>
+      prev.map((age, i) => {
+        if (i === index) {
+          return {
+            ...age,
+            isCurrent: true,
+            currentYear: age.currentYear ?? (age.hasYearZero ? 0 : 1),
+            length: null,
+          };
+        }
+        if (!age.isCurrent) return age;
+        return {
+          ...age,
+          isCurrent: false,
+          currentYear: null,
+          length: age.length ?? 100,
+        };
+      }),
+    );
   };
 
   const handleRemoveAge = (index: number) => {
@@ -237,8 +266,8 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
             )}
             <div className="space-y-2">
               {ages.map((age, index) => (
-                <div key={age.id} className="grid grid-cols-1 items-end gap-2 sm:grid-cols-4">
-                  <div>
+                <div key={age.id} className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                  <div className="min-w-32 flex-1">
                     <label className={labelClass}>Name</label>
                     <input
                       type="text"
@@ -248,31 +277,61 @@ export function CalendarEditModal({ calendar, onSave, onClose, isPending }: Prop
                       className={inputClass}
                     />
                   </div>
-                  <div>
-                    <label className={labelClass}>Start Year</label>
+                  {age.isCurrent ? (
+                    <div className="w-28">
+                      <label className={labelClass}>Current Year</label>
+                      <input
+                        type="number"
+                        min={age.hasYearZero ? 0 : 1}
+                        value={age.currentYear ?? ""}
+                        onChange={(e) =>
+                          handleUpdateAge(index, {
+                            currentYear: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-28">
+                      <label className={labelClass}>Years</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={age.length ?? ""}
+                        onChange={(e) =>
+                          handleUpdateAge(index, {
+                            length: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
+                  <label className="flex items-center gap-1.5 pb-2 text-xs font-medium text-muted dark:text-secondary">
                     <input
-                      type="number"
-                      value={age.startYear}
-                      onChange={(e) => handleUpdateAge(index, { startYear: Number(e.target.value) })}
-                      required
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>End Year (optional)</label>
-                    <input
-                      type="number"
-                      placeholder="Open ended"
-                      value={age.endYear ?? ""}
+                      type="checkbox"
+                      checked={age.hasYearZero}
                       onChange={(e) =>
-                        handleUpdateAge(index, {
-                          endYear: e.target.value ? Number(e.target.value) : null,
-                        })
+                        handleUpdateAge(index, { hasYearZero: e.target.checked })
                       }
-                      className={inputClass}
+                      className="h-4 w-4 accent-accent"
                     />
-                  </div>
-                  <div className="flex justify-end">
+                    Starts at year 0
+                  </label>
+                  <label className="flex items-center gap-1.5 pb-2 text-xs font-medium text-muted dark:text-secondary">
+                    <input
+                      type="radio"
+                      name="currentAge"
+                      checked={age.isCurrent}
+                      onChange={() => handleSetCurrentAge(index)}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    Current age
+                  </label>
+                  <div className="flex justify-end pb-0.5">
                     <button
                       type="button"
                       onClick={() => handleRemoveAge(index)}

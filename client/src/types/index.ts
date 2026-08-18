@@ -88,8 +88,14 @@ export interface CalendarAge {
   id: string;
   calendarId: string;
   name: string;
-  startYear: number;
-  endYear: number | null;
+  /** Number of years in the age; null while the age is the current age. */
+  length: number | null;
+  /** Whether the age counts a year 0 (true) or starts at year 1 (false). */
+  hasYearZero: boolean;
+  /** Whether this is the current (ongoing) age of the calendar. */
+  isCurrent: boolean;
+  /** The current year within the age; only set when isCurrent is true. */
+  currentYear: number | null;
   order: number;
 }
 

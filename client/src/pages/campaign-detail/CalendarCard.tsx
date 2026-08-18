@@ -10,6 +10,7 @@ import { useCalendar } from "../../hooks/useCalendars";
 import { useCampaignNodes } from "../../hooks/useNodes";
 import {
   absoluteDayForDate,
+  ageStartYear,
   dateForAbsoluteDay,
   daysInYear,
   groupNodesByAbsoluteDay,
@@ -62,7 +63,7 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
     if (!calendar) return null;
     return presentDate ?? {
       ageId: calendar.ages[0]?.id ?? "",
-      year: calendar.ages[0]?.startYear ?? 0,
+      year: calendar.ages[0] ? ageStartYear(calendar.ages[0]) : 0,
       monthId: calendar.months[0]?.id ?? "",
       day: 1,
     };
@@ -216,7 +217,7 @@ export function CalendarCard({ campaignId, isDm, isLoremaster, onEditCalendar }:
                     onClick={() => {
                       setViewDate({
                         ageId: age.id,
-                        year: age.startYear,
+                        year: ageStartYear(age),
                         monthId: viewDate.monthId,
                         day: 1,
                       });

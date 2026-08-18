@@ -51,8 +51,10 @@ export function useSaveCalendar(campaignId: string) {
       ages: Array<{
         id?: string;
         name: string;
-        startYear: number;
-        endYear?: number | null;
+        length?: number | null;
+        hasYearZero: boolean;
+        isCurrent: boolean;
+        currentYear?: number | null;
         order: number;
       }>;
       months: Array<{
