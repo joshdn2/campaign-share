@@ -74,14 +74,22 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </button>
         )}  */}
 
-        {/* App title navigates back to the campaigns list */}
-        <h1
-          className="cursor-pointer text-base font-bold text-black dark:text-white md:text-lg"
+        {/* Brand: logo always visible; full wordmark from md up. Navigates
+            back to the campaigns list. The logo art is white-on-transparent,
+            so it is inverted in light mode to stay visible. */}
+        <div
+          className="flex cursor-pointer items-center gap-2"
           onClick={() => navigate("/campaigns")}
         >
-          <span className="hidden md:inline">Campaign Notes</span>
-          <span className="md:hidden">CH</span>
-        </h1>
+          <img
+            src="/brand/campaign-notes-logo.png"
+            alt="Campaign Notes logo"
+            className="h-8 w-auto invert dark:invert-0"
+          />
+          <h1 className="text-base font-bold text-black md:text-lg dark:text-white">
+            <span className="hidden md:inline">Campaign Notes</span>
+          </h1>
+        </div>
       </div>
 
       {/* Centered search bar */}

@@ -75,7 +75,15 @@ export function LandingPage() {
     <div className="min-h-screen bg-surface dark:bg-base">
       {/* Header */}
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
-        <span className="text-lg font-bold text-primary">Campaign Notes</span>
+        <Link to="/" className="flex items-center gap-2">
+          {/* Logo art is white-on-transparent; inverted in light mode */}
+          <img
+            src="/brand/campaign-notes-logo.png"
+            alt="Campaign Notes logo"
+            className="h-8 w-auto invert dark:invert-0"
+          />
+          <span className="text-lg font-bold text-primary">Campaign Notes</span>
+        </Link>
         <nav className="flex items-center gap-3">
           <Link
             to="/login"
@@ -158,9 +166,16 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-default">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-6 sm:px-6">
-          <span className="text-sm text-muted dark:text-secondary">
-            Campaign Notes
-          </span>
+          <div className="flex items-center gap-2">
+            <img
+              src="/brand/campaign-notes-logo.png"
+              alt="Campaign Notes logo"
+              className="h-6 w-auto invert dark:invert-0"
+            />
+            <span className="text-sm text-muted dark:text-secondary">
+              Campaign Notes
+            </span>
+          </div>
           <Link
             to="/login"
             className="text-sm font-medium text-accent hover:underline"
