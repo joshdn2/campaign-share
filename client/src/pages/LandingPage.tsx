@@ -98,9 +98,8 @@ export function LandingPage() {
           One place for your whole campaign
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted dark:text-secondary sm:text-lg">
-          Campaign Notes helps tabletop RPG groups share notes, maps,
-          calendars, and lore — so everyone at the table stays on the same
-          page.
+          Campaign Notes helps tabletop RPG groups share notes, maps, calendars,
+          and lore — so everyone at the table stays on the same page.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
@@ -129,7 +128,7 @@ export function LandingPage() {
               key={feature.title}
               className="rounded-xl bg-card-bg p-6 shadow-lg"
             >
-              <h3 className="text-base font-semibold text-primary">
+              <h3 className="text-accent font-semibold text-primary">
                 {feature.title}
               </h3>
               <p className="mt-2 text-sm text-muted dark:text-secondary">

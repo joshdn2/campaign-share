@@ -16,3 +16,6 @@ client/.env
 
 # OS files
 .DS_Store
+
+*.log
+server/prisma/seed.js
